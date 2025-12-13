@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crônicas de Algorion - Tabuleiro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="game-container">
+        <!-- Left Column: Hint Cards -->
+        <div class="hint-column">
+            <button class="nav-button nav-up" id="scrollUp" aria-label="Rolar para cima">
+                <span>▲</span>
+            </button>
+
+            <div class="hint-cards-container">
+                <div class="hint-card" draggable="true" data-card-id="1">
+                    <span class="card-label">DICA</span>
+                </div>
+                <div class="hint-card" draggable="true" data-card-id="2">
+                    <span class="card-label">DICA</span>
+                </div>
+                <div class="hint-card" draggable="true" data-card-id="3">
+                    <span class="card-label">DICA</span>
+                </div>
+            </div>
+
+            <button class="nav-button nav-down" id="scrollDown" aria-label="Rolar para baixo">
+                <span>▼</span>
+            </button>
+        </div>
+
+        <!-- Central Board -->
+        <div class="main-container">
+            <!-- Slots at Top -->
+            <div class="slots-container">
+                <div class="slot" data-slot-index="0">
+                    <span class="slot-label">SLOT</span>
+                </div>
+                <div class="slot" data-slot-index="1">
+                    <span class="slot-label">SLOT</span>
+                </div>
+                <div class="slot" data-slot-index="2">
+                    <span class="slot-label">SLOT</span>
+                </div>
+                <div class="slot" data-slot-index="3">
+                    <span class="slot-label">SLOT</span>
+                </div>
+                <div class="slot" data-slot-index="4">
+                    <span class="slot-label">SLOT</span>
+                </div>
+                <div class="slot" data-slot-index="5">
+                    <span class="slot-label">SLOT</span>
+                </div>
+                <div class="slot" data-slot-index="6">
+                    <span class="slot-label">SLOT</span>
+                </div>
+                <div class="slot" data-slot-index="7">
+                    <span class="slot-label">SLOT</span>
+                </div>
+            </div>
+
+            <div class="board-frame"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

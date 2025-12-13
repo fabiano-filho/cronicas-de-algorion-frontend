@@ -1,0 +1,308 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #1a1a1a;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: 'Georgia', serif;
+}
+
+/* Game Container - holds hint column and board */
+.game-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2vmin;
+    padding: 2vmin;
+}
+
+/* Left Hint Column */
+.hint-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5vmin;
+    background-color: #e3dcd2;
+    background-image: linear-gradient(to bottom, rgba(227, 220, 210, 0.95), rgba(215, 208, 198, 0.95));
+    border-radius: 12px;
+    padding: 2vmin 1.5vmin;
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.4),
+        inset 0 0 30px rgba(0, 0, 0, 0.1);
+    border: 2px solid #b8a894;
+    max-height: 85vh;
+}
+
+/* Navigation Buttons */
+.nav-button {
+    width: 8vmin;
+    height: 8vmin;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 60px;
+    max-height: 60px;
+    background-color: #c5b8a5;
+    border: 2px solid #9a8a70;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3vmin;
+    color: #4a4537;
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    transition: all 0.2s ease;
+}
+
+.nav-button:hover:not(:disabled) {
+    background-color: #d4c7b4;
+    transform: translateY(-1px);
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.nav-button:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.nav-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.nav-button span {
+    user-select: none;
+}
+
+/* Hint Cards Container */
+.hint-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vmin;
+    align-items: center;
+}
+
+/* Individual Hint Card */
+.hint-card {
+    width: 12vmin;
+    height: 18vmin;
+    min-width: 80px;
+    min-height: 120px;
+    max-width: 120px;
+    max-height: 180px;
+    background-color: #fdfbf7;
+    border: 2px solid #d4c7b4;
+    border-radius: 8px;
+    box-shadow:
+        0 3px 8px rgba(0, 0, 0, 0.3),
+        inset 0 0 15px rgba(227, 220, 210, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.hint-card::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border: 1px solid rgba(197, 184, 165, 0.3);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.card-label {
+    font-size: 2vmin;
+    font-weight: bold;
+    color: #5a5244;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    user-select: none;
+}
+
+/* Dragging State */
+.hint-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.hint-card[draggable="true"] {
+    cursor: grab;
+}
+
+/* Main Container - Board area */
+.main-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2vmin;
+}
+
+/* Slots Container */
+.slots-container {
+    display: flex;
+    gap: 1.5vmin;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5vmin;
+    background-color: rgba(227, 220, 210, 0.3);
+    border-radius: 10px;
+    border: 1px solid rgba(184, 168, 148, 0.5);
+}
+
+/* Individual Slot */
+.slot {
+    width: 9vmin;
+    height: 13.5vmin;
+    min-width: 60px;
+    min-height: 90px;
+    max-width: 90px;
+    max-height: 135px;
+    background-color: rgba(253, 251, 247, 0.5);
+    border: 2px dashed #c5b8a5;
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.slot-label {
+    font-size: 1.5vmin;
+    color: #b8a894;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    user-select: none;
+    opacity: 0.5;
+}
+
+/* Filled Slot */
+.slot.filled {
+    background-color: transparent;
+    border: 2px solid transparent;
+}
+
+.slot.filled .slot-label {
+    display: none;
+}
+
+/* Drag Over State */
+.slot.drag-over {
+    border-color: #9a8a70;
+    border-style: solid;
+    background-color: rgba(197, 184, 165, 0.2);
+    transform: scale(1.05);
+}
+
+/* Card in Slot */
+.slot .hint-card {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Remove Button */
+.remove-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    background-color: #9a8a70;
+    border: 1px solid #7a6a50;
+    border-radius: 50%;
+    color: #fdfbf7;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    transition: all 0.2s ease;
+}
+
+.remove-btn:hover {
+    background-color: #7a6a50;
+    transform: scale(1.1);
+}
+
+.board-frame {
+    width: 95vmin;
+    max-width: 100%;
+    max-height: 95vh;
+    background-image: url('tabuleiro cronicas.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    aspect-ratio: 4/3;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1024px) {
+    .game-container {
+        gap: 1vmin;
+    }
+
+    .hint-column {
+        padding: 1.5vmin 1vmin;
+    }
+}
+
+@media (max-width: 768px) {
+    .game-container {
+        flex-direction: column;
+        gap: 1.5vmin;
+    }
+
+    .hint-column {
+        flex-direction: row;
+        max-height: none;
+        width: 90vw;
+        padding: 1.5vmin;
+    }
+
+    .hint-cards-container {
+        flex-direction: row;
+        gap: 2vmin;
+    }
+
+    .nav-button {
+        width: 10vmin;
+        height: 10vmin;
+    }
+
+    .hint-card {
+        width: 15vmin;
+        height: 22vmin;
+    }
+
+    .board-frame {
+        width: 90vw;
+        max-height: 60vh;
+    }
+}
