@@ -1,3 +1,19 @@
+// Hero Card Flip Functionality
+const heroCard = document.getElementById('heroCard');
+if (heroCard) {
+    heroCard.addEventListener('click', function () {
+        this.classList.toggle('flipped');
+    });
+}
+
+// Event Card Flip Functionality
+const eventCard = document.getElementById('eventCard');
+if (eventCard) {
+    eventCard.addEventListener('click', function () {
+        this.classList.toggle('flipped');
+    });
+}
+
 // Hint cards carousel functionality + Drag-and-Drop
 const TOTAL_CARDS = 8;
 const VISIBLE_CARDS = 3;
