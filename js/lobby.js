@@ -24,17 +24,25 @@ let heroisOcupados = {}
 // =====================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Carregar dados da sessão do localStorage
+    // Obter código da URL (link compartilhado)
+    const params = new URLSearchParams(window.location.search)
+    const codigoUrlRaw = params.get('sessao') || params.get('session')
+    const codigoUrl = codigoUrlRaw ? String(codigoUrlRaw).trim().toUpperCase() : null
+
+    // Carregar dados da sessão do localStorage.
+    // Importante: quem abre o link pela primeira vez não terá sessionData salvo;
+    // nesse caso, redireciona para a Home já com o código na URL.
     if (!carregarSessaoLocal()) {
+        if (codigoUrl) {
+            window.location.href = `home.html?sessao=${encodeURIComponent(codigoUrl)}`
+            return
+        }
         alert('Sessão não encontrada. Redirecionando...')
         window.location.href = 'home.html'
         return
     }
 
-    // Obter código da URL
-    const params = new URLSearchParams(window.location.search)
-    const codigoUrl = params.get('sessao')
-
+    // Se veio com código na URL (ex.: jogador abriu o link), sincronizar.
     if (codigoUrl && codigoUrl !== sessionData.sessionId) {
         sessionData.sessionId = codigoUrl
         salvarSessaoLocal()
