@@ -1,0 +1,486 @@
+/* =====================================================
+   LOBBY PAGE - Crônicas de Algorion
+   Sala de espera + Seleção de Heróis
+   ===================================================== */
+
+/* Body override for lobby page */
+body.lobby-page {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2518 50%, #1a1a1a 100%);
+    background-image:
+        linear-gradient(
+            135deg,
+            rgba(26, 26, 26, 0.95) 0%,
+            rgba(45, 37, 24, 0.9) 50%,
+            rgba(26, 26, 26, 0.95) 100%
+        ),
+        url('assets/texture_parchment.png');
+    background-size: cover;
+    min-height: 100vh;
+    overflow-y: auto;
+}
+
+/* Lobby Container */
+.lobby-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 2vmin 4vmin;
+    gap: 2vmin;
+}
+
+/* Header */
+.lobby-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background-color: rgba(227, 220, 210, 0.95);
+    border-radius: 12px;
+    border: 2px solid #b8a894;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.lobby-title {
+    font-family: 'Georgia', serif;
+    font-size: clamp(1.5rem, 4vmin, 2.5rem);
+    color: #4a4537;
+    margin: 0;
+}
+
+.session-info {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem 1.2rem;
+    background-color: #fdfbf7;
+    border: 2px solid #c5b8a5;
+    border-radius: 8px;
+}
+
+.session-label {
+    font-size: 0.9rem;
+    color: #7a6a50;
+}
+
+.session-code {
+    font-family: 'Courier New', monospace;
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #4a4537;
+    letter-spacing: 0.15em;
+}
+
+.btn-copiar-small {
+    padding: 0.3rem 0.5rem;
+    background-color: #c5b8a5;
+    border: 1px solid #9a8a70;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-copiar-small:hover {
+    background-color: #b8a894;
+    transform: scale(1.05);
+}
+
+/* Content Area */
+.lobby-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2vmin;
+}
+
+/* Section styling */
+.players-section,
+.hero-selection-section {
+    background-color: rgba(227, 220, 210, 0.95);
+    border-radius: 12px;
+    border: 2px solid #b8a894;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.section-title {
+    font-family: 'Georgia', serif;
+    font-size: 1.3rem;
+    color: #4a4537;
+    margin: 0 0 0.5rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #c5b8a5;
+}
+
+.section-subtitle {
+    font-size: 0.9rem;
+    color: #7a6a50;
+    margin: 0 0 1rem 0;
+}
+
+/* Players List */
+.players-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-top: 1rem;
+}
+
+.player-slot {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem 1rem;
+    background-color: #fdfbf7;
+    border: 2px solid #c5b8a5;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.player-slot.empty {
+    border-style: dashed;
+    justify-content: center;
+}
+
+.player-slot.connected {
+    border-color: #8b7355;
+    background-color: rgba(139, 115, 85, 0.1);
+}
+
+.player-slot.ready {
+    border-color: #5a8a5a;
+    background-color: rgba(90, 138, 90, 0.1);
+}
+
+.player-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #c5b8a5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+}
+
+.player-info {
+    flex: 1;
+}
+
+.player-name {
+    font-weight: bold;
+    color: #4a4537;
+    font-size: 1rem;
+}
+
+.player-hero {
+    font-size: 0.8rem;
+    color: #7a6a50;
+}
+
+.player-badge {
+    padding: 0.2rem 0.6rem;
+    background-color: #8b7355;
+    color: #fdfbf7;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.player-badge.mestre {
+    background-color: #6b5a45;
+}
+
+.waiting-text {
+    color: #b8a894;
+    font-style: italic;
+}
+
+.players-count {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #7a6a50;
+}
+
+/* Heroes Grid */
+.heroes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.hero-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background-color: #fdfbf7;
+    border: 3px solid #c5b8a5;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.hero-option:hover:not(.taken):not(.selected) {
+    border-color: #8b7355;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.hero-option.selected {
+    border-color: #5a8a5a;
+    background-color: rgba(90, 138, 90, 0.1);
+    box-shadow: 0 0 0 3px rgba(90, 138, 90, 0.3);
+}
+
+.hero-option.taken {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.hero-card-preview {
+    width: 80px;
+    height: 112px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    margin-bottom: 0.8rem;
+}
+
+.hero-card-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hero-info {
+    text-align: center;
+}
+
+.hero-name {
+    font-family: 'Georgia', serif;
+    font-size: 1.1rem;
+    color: #4a4537;
+    margin: 0 0 0.3rem 0;
+}
+
+.hero-ability {
+    font-size: 0.75rem;
+    color: #7a6a50;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.hero-status {
+    margin-top: 0.5rem;
+}
+
+.status-available {
+    font-size: 0.75rem;
+    color: #5a8a5a;
+    font-weight: bold;
+}
+
+.status-taken {
+    font-size: 0.75rem;
+    color: #8b4a4a;
+    font-weight: bold;
+}
+
+/* Selected Hero Display */
+.selected-hero {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: rgba(90, 138, 90, 0.1);
+    border: 2px solid #5a8a5a;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.selected-hero p {
+    margin: 0 0 0.8rem 0;
+    color: #4a4537;
+}
+
+.btn-change-hero {
+    padding: 0.5rem 1rem;
+    background-color: #c5b8a5;
+    border: 1px solid #9a8a70;
+    border-radius: 6px;
+    font-family: 'Georgia', serif;
+    font-size: 0.9rem;
+    color: #4a4537;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-change-hero:hover {
+    background-color: #b8a894;
+}
+
+/* Footer */
+.lobby-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background-color: rgba(227, 220, 210, 0.95);
+    border-radius: 12px;
+    border: 2px solid #b8a894;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.mestre-controls {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.ready-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #7a6a50;
+}
+
+.status-icon {
+    font-size: 1.2rem;
+}
+
+.btn-iniciar-jogo {
+    padding: 1rem 2rem;
+    background: linear-gradient(to bottom, #5a8a5a, #4a7a4a);
+    border: 2px solid #3a6a3a;
+    border-radius: 10px;
+    font-family: 'Georgia', serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fdfbf7;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-iniciar-jogo:hover:not(:disabled) {
+    background: linear-gradient(to bottom, #6a9a6a, #5a8a5a);
+    transform: translateY(-2px);
+}
+
+.btn-iniciar-jogo:disabled {
+    background: linear-gradient(to bottom, #999, #888);
+    border-color: #777;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.jogador-controls {
+    flex: 1;
+}
+
+.waiting-message {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    color: #7a6a50;
+    font-size: 1rem;
+}
+
+.pulse-dot {
+    width: 10px;
+    height: 10px;
+    background-color: #8b7355;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+.btn-voltar {
+    padding: 0.8rem 1.5rem;
+    background-color: transparent;
+    border: 2px solid #9a8a70;
+    border-radius: 8px;
+    font-family: 'Georgia', serif;
+    font-size: 0.95rem;
+    color: #7a6a50;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-voltar:hover {
+    background-color: rgba(154, 138, 112, 0.1);
+    border-color: #7a6a50;
+}
+
+/* Hidden utility */
+.hidden {
+    display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .lobby-content {
+        grid-template-columns: 1fr;
+    }
+
+    .lobby-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .heroes-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .lobby-footer {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .mestre-controls {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-iniciar-jogo {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .heroes-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-option {
+        flex-direction: row;
+        gap: 1rem;
+    }
+
+    .hero-card-preview {
+        width: 60px;
+        height: 84px;
+        margin-bottom: 0;
+    }
+
+    .hero-info {
+        text-align: left;
+        flex: 1;
+    }
+}

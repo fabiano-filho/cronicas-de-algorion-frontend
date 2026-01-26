@@ -1,0 +1,412 @@
+/* =====================================================
+   HOME PAGE - Crônicas de Algorion
+   Tela inicial: Criar/Entrar em Sessão
+   ===================================================== */
+
+/* Body override for home page */
+body.home-page {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2518 50%, #1a1a1a 100%);
+    background-image:
+        linear-gradient(
+            135deg,
+            rgba(26, 26, 26, 0.95) 0%,
+            rgba(45, 37, 24, 0.9) 50%,
+            rgba(26, 26, 26, 0.95) 100%
+        ),
+        url('assets/texture_parchment.png');
+    background-size: cover;
+    min-height: 100vh;
+    overflow-y: auto;
+}
+
+/* Home Container */
+.home-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 4vmin;
+    gap: 3vmin;
+}
+
+/* Logo Section */
+.logo-section {
+    text-align: center;
+    margin-bottom: 1vmin;
+}
+
+.game-title {
+    font-family: 'Georgia', serif;
+    font-size: clamp(2rem, 6vmin, 4rem);
+    color: #e3dcd2;
+    text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        0 4px 8px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.game-subtitle {
+    font-family: 'Georgia', serif;
+    font-size: clamp(0.9rem, 2vmin, 1.3rem);
+    color: #b8a894;
+    font-style: italic;
+    letter-spacing: 0.1em;
+}
+
+/* Home Card - Main form container */
+.home-card {
+    background-color: #e3dcd2;
+    background-image: linear-gradient(
+        to bottom,
+        rgba(227, 220, 210, 0.98),
+        rgba(215, 208, 198, 0.98)
+    );
+    border-radius: 16px;
+    padding: 0;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 0 40px rgba(0, 0, 0, 0.05);
+    border: 3px solid #b8a894;
+    width: 100%;
+    max-width: 420px;
+    overflow: hidden;
+}
+
+/* Tab Navigation */
+.tab-navigation {
+    display: flex;
+    border-bottom: 2px solid #c5b8a5;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 1.2rem 1rem;
+    background-color: #d7d0c6;
+    border: none;
+    font-family: 'Georgia', serif;
+    font-size: clamp(0.9rem, 2vmin, 1.1rem);
+    font-weight: bold;
+    color: #7a6a50;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.tab-btn:first-child {
+    border-radius: 13px 0 0 0;
+}
+
+.tab-btn:last-child {
+    border-radius: 0 13px 0 0;
+}
+
+.tab-btn:hover:not(.active) {
+    background-color: #e0d9cf;
+    color: #5a5244;
+}
+
+.tab-btn.active {
+    background-color: #e3dcd2;
+    color: #4a4537;
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #e3dcd2;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+    padding: 2rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Form Groups */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-family: 'Georgia', serif;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #5a5244;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.02em;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    font-family: 'Georgia', serif;
+    font-size: 1rem;
+    color: #4a4537;
+    background-color: #fdfbf7;
+    border: 2px solid #c5b8a5;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #9a8a70;
+    box-shadow: 0 0 0 3px rgba(154, 138, 112, 0.2);
+}
+
+.form-group input::placeholder {
+    color: #b8a894;
+}
+
+/* Primary Button */
+.btn-primary {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(to bottom, #8b7355, #6b5a45);
+    border: 2px solid #5a4a35;
+    border-radius: 10px;
+    font-family: 'Georgia', serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fdfbf7;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(to bottom, #9b8365, #7b6a55);
+    transform: translateY(-2px);
+    box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+}
+
+/* Secondary Button */
+.btn-secondary {
+    width: 100%;
+    padding: 0.9rem 1.5rem;
+    background: linear-gradient(to bottom, #c5b8a5, #b8a894);
+    border: 2px solid #9a8a70;
+    border-radius: 10px;
+    font-family: 'Georgia', serif;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #4a4537;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(to bottom, #d4c7b4, #c5b8a5);
+    transform: translateY(-1px);
+}
+
+.btn-arrow {
+    font-size: 1.3rem;
+    transition: transform 0.2s ease;
+}
+
+.btn-secondary:hover .btn-arrow {
+    transform: translateX(4px);
+}
+
+/* Divider */
+.divider {
+    height: 2px;
+    background: linear-gradient(to right, transparent, #c5b8a5, transparent);
+    margin: 1.5rem 0;
+}
+
+/* Session Created Section */
+.sessao-criada {
+    text-align: center;
+}
+
+.sessao-criada h3 {
+    font-family: 'Georgia', serif;
+    font-size: 1.3rem;
+    color: #5a5244;
+    margin-bottom: 0.5rem;
+}
+
+.info-text {
+    font-size: 0.9rem;
+    color: #7a6a50;
+    margin-bottom: 1rem;
+}
+
+/* Código Container */
+.codigo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    background-color: #fdfbf7;
+    border: 2px solid #c5b8a5;
+    border-radius: 8px;
+}
+
+.codigo-label {
+    font-size: 0.9rem;
+    color: #7a6a50;
+}
+
+.codigo-valor {
+    font-family: 'Courier New', monospace;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #4a4537;
+    letter-spacing: 0.15em;
+}
+
+.btn-copiar {
+    padding: 0.4rem 0.6rem;
+    background-color: #c5b8a5;
+    border: 1px solid #9a8a70;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-copiar:hover {
+    background-color: #b8a894;
+    transform: scale(1.05);
+}
+
+.btn-copiar:active {
+    transform: scale(0.95);
+}
+
+/* Link Container */
+.link-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.link-container input {
+    flex: 1;
+    padding: 0.7rem 0.8rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: #5a5244;
+    background-color: #fdfbf7;
+    border: 2px solid #c5b8a5;
+    border-radius: 8px;
+}
+
+/* Error Container */
+.erro-container {
+    margin-top: 1rem;
+    padding: 0.8rem;
+    background-color: rgba(180, 100, 100, 0.15);
+    border: 1px solid rgba(180, 100, 100, 0.4);
+    border-radius: 8px;
+}
+
+.erro-text {
+    font-size: 0.9rem;
+    color: #8b4a4a;
+    margin: 0;
+}
+
+/* Hidden utility */
+.hidden {
+    display: none !important;
+}
+
+/* Home Footer */
+.home-footer {
+    text-align: center;
+    margin-top: 1vmin;
+}
+
+.home-footer p {
+    font-family: 'Georgia', serif;
+    font-size: clamp(0.8rem, 1.5vmin, 1rem);
+    color: #7a6a50;
+    opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .home-container {
+        padding: 2vmin;
+    }
+
+    .tab-content {
+        padding: 1.5rem;
+    }
+
+    .codigo-valor {
+        font-size: 1.2rem;
+    }
+}
+
+/* Copied feedback animation */
+@keyframes copied {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+        background-color: #8b7355;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.btn-copiar.copied {
+    animation: copied 0.3s ease;
+}

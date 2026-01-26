@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Crônicas de Algorion - Início</title>
+        <link rel="stylesheet" href="../css/style.css" />
+        <link rel="stylesheet" href="../css/home.css" />
+    </head>
+
+    <body class="home-page">
+        <div class="home-container">
+            <!-- Logo e Título -->
+            <div class="logo-section">
+                <h1 class="game-title">Crônicas de Algorion</h1>
+                <p class="game-subtitle">Uma jornada de lógica e mistérios</p>
+            </div>
+
+            <!-- Formulário principal -->
+            <div class="home-card">
+                <!-- Abas de navegação -->
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-tab="criar">
+                        Criar Sessão
+                    </button>
+                    <button class="tab-btn" data-tab="entrar">
+                        Entrar em Sessão
+                    </button>
+                </div>
+
+                <!-- Tab: Criar Sessão -->
+                <div class="tab-content active" id="tab-criar">
+                    <div class="form-group">
+                        <label for="nomeMestre">Seu Nome (Mestre)</label>
+                        <input
+                            type="text"
+                            id="nomeMestre"
+                            placeholder="Digite seu nome"
+                            maxlength="30"
+                            autocomplete="off"
+                        />
+                    </div>
+
+                    <button class="btn-primary" id="btnCriarSessao">
+                        <span class="btn-icon">⚔️</span>
+                        Criar Nova Sessão
+                    </button>
+
+                    <!-- Área de código gerado (oculta inicialmente) -->
+                    <div class="sessao-criada hidden" id="sessaoCriada">
+                        <div class="divider"></div>
+                        <h3>Sessão Criada!</h3>
+                        <p class="info-text">
+                            Compartilhe o código ou link com os jogadores:
+                        </p>
+
+                        <div class="codigo-container">
+                            <span class="codigo-label">Código:</span>
+                            <span class="codigo-valor" id="codigoSessao"
+                                >ABC123</span
+                            >
+                            <button
+                                class="btn-copiar"
+                                id="btnCopiarCodigo"
+                                title="Copiar código"
+                            >
+                                📋
+                            </button>
+                        </div>
+
+                        <div class="link-container">
+                            <input type="text" id="linkSessao" readonly />
+                            <button
+                                class="btn-copiar"
+                                id="btnCopiarLink"
+                                title="Copiar link"
+                            >
+                                📋
+                            </button>
+                        </div>
+
+                        <button class="btn-secondary" id="btnIrParaLobby">
+                            Ir para o Lobby
+                            <span class="btn-arrow">→</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab: Entrar em Sessão -->
+                <div class="tab-content" id="tab-entrar">
+                    <div class="form-group">
+                        <label for="nomeJogador">Seu Nome</label>
+                        <input
+                            type="text"
+                            id="nomeJogador"
+                            placeholder="Digite seu nome"
+                            maxlength="30"
+                            autocomplete="off"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="codigoEntrar">Código da Sessão</label>
+                        <input
+                            type="text"
+                            id="codigoEntrar"
+                            placeholder="Ex: ABC123"
+                            maxlength="10"
+                            autocomplete="off"
+                            style="text-transform: uppercase"
+                        />
+                    </div>
+
+                    <button class="btn-primary" id="btnEntrarSessao">
+                        <span class="btn-icon">🎮</span>
+                        Entrar na Sessão
+                    </button>
+
+                    <div class="erro-container hidden" id="erroEntrar">
+                        <p class="erro-text"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="home-footer">
+                <p>Um jogo educativo sobre Programação Orientada a Objetos</p>
+            </div>
+        </div>
+
+        <script src="../js/env.js"></script>
+        <script src="../js/config.js"></script>
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script src="../js/home.js"></script>
+    </body>
+</html>

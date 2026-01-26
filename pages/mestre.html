@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Crônicas de Algorion - Painel do Mestre</title>
+        <link rel="stylesheet" href="../css/mestre.css" />
+    </head>
+
+    <body>
+        <!-- Header -->
+        <header class="mestre-header">
+            <div class="header-left">
+                <span class="mestre-badge">👑 MESTRE</span>
+                <div class="session-info">
+                    <span class="session-code" id="sessionCode">------</span>
+                    <span class="session-status" id="sessionStatus"
+                        >Conectando...</span
+                    >
+                </div>
+            </div>
+            <div class="header-right"></div>
+        </header>
+
+        <!-- Main Container -->
+        <div class="mestre-container">
+            <!-- Left Sidebar - Players -->
+            <aside class="sidebar-players">
+                <h2 class="sidebar-title"><span>👥</span> Jogadores</h2>
+                <div class="players-list" id="playersList">
+                    <!-- Players will be rendered here -->
+                    <div class="player-card">
+                        <div class="player-header">
+                            <span class="player-name">Aguardando...</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Game Status Bar -->
+                <div class="game-status-bar">
+                    <div class="status-item">
+                        <div class="status-label">Rodada</div>
+                        <div class="status-value" id="rodadaAtual">1</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Turno</div>
+                        <div class="status-value" id="turnoAtual">1</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Jogador da Vez</div>
+                        <div
+                            class="status-value current-player"
+                            id="jogadorDaVez"
+                        >
+                            -
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Eventos Restantes</div>
+                        <div class="status-value" id="eventosRestantes">5</div>
+                    </div>
+                </div>
+
+                <!-- Board Preview -->
+                <section class="board-section">
+                    <div class="section-header">
+                        <h2 class="section-title">🎮 Tabuleiro</h2>
+                    </div>
+                    <div class="board-preview">
+                        <img
+                            src="../assets/tabuleiro cronicas.png"
+                            alt="Tabuleiro"
+                            class="board-image"
+                            id="boardImage"
+                        />
+                        <div
+                            class="player-tokens-container"
+                            id="tokensContainer"
+                        >
+                            <!-- Player tokens will be positioned here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Action Log -->
+                <section class="panel log-panel">
+                    <h3 class="panel-title">📋 Log de Ações</h3>
+                    <div class="log-entries" id="logEntries">
+                        <div class="log-entry info">
+                            <span class="log-time">--:--</span>
+                            <span class="log-message"
+                                >Aguardando início do jogo...</span
+                            >
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <!-- Right Sidebar - Controls -->
+            <aside class="sidebar-controls" id="sidebarControls">
+                <!-- Event Card Panel -->
+                <div class="panel">
+                    <h3 class="panel-title">🎴 Evento da Rodada</h3>
+                    <div class="event-card-display" id="eventCardDisplay">
+                        <span class="no-event">Nenhum evento ativo</span>
+                    </div>
+                </div>
+
+                <!-- Current Riddle Panel -->
+                <div class="panel">
+                    <h3 class="panel-title">❓ Charada Atual</h3>
+                    <div class="riddle-display" id="riddleDisplay">
+                        <p class="no-riddle">Nenhuma charada em andamento</p>
+                    </div>
+                    <div
+                        class="validation-buttons"
+                        id="validationButtons"
+                        style="display: none"
+                    >
+                        <button class="btn-control btn-primary" id="btnAcertou">
+                            ✅ Acertou
+                        </button>
+                        <button class="btn-control btn-danger" id="btnErrou">
+                            ❌ Errou
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Game Control Panel -->
+                <div class="panel">
+                    <h3 class="panel-title">⚙️ Controles do Jogo</h3>
+                    <div class="control-buttons">
+                        <button
+                            class="btn-control btn-warning"
+                            id="btnProximoTurno"
+                        >
+                            ⏭️ Próximo Turno
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Timer Panel -->
+                <div class="panel timer-panel">
+                    <h3 class="panel-title">⏱️ Cronômetro</h3>
+                    <div class="timer-display" id="timerDisplay">01:00</div>
+                    <div class="timer-presets">
+                        <button class="btn-timer-preset" data-time="30">
+                            30s
+                        </button>
+                        <button class="btn-timer-preset active" data-time="60">
+                            1min
+                        </button>
+                        <button class="btn-timer-preset" data-time="120">
+                            2min
+                        </button>
+                        <button class="btn-timer-preset" data-time="180">
+                            3min
+                        </button>
+                    </div>
+                    <div class="timer-controls">
+                        <button
+                            class="btn-control btn-primary"
+                            id="btnIniciarTimer"
+                        >
+                            ▶️ Iniciar
+                        </button>
+                        <button
+                            class="btn-control btn-warning"
+                            id="btnPausarTimer"
+                            disabled
+                        >
+                            ⏸️ Pausar
+                        </button>
+                        <button
+                            class="btn-control btn-secondary"
+                            id="btnResetTimer"
+                        >
+                            🔄 Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Panel -->
+                <div class="panel">
+                    <h3 class="panel-title">⚡ Ações Rápidas</h3>
+                    <div class="control-buttons">
+                        <button
+                            class="btn-control btn-secondary"
+                            id="btnVerCartas"
+                        >
+                            🃏 Ver Todas as Dicas
+                        </button>
+                    </div>
+
+                    <!-- Painel de teste (somente quando ?debug=1) -->
+                    <div
+                        class="panel"
+                        id="debugPanel"
+                        style="display: none; margin-top: 12px"
+                    >
+                        <h3 class="panel-title">🧪 Teste: Simular Enigma</h3>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                            <select
+                                id="debugCasaSelect"
+                                class="btn-control btn-secondary"
+                                style="flex: 1; min-width: 140px"
+                            >
+                                <option value="C1">C1 (Biblioteca)</option>
+                                <option value="C2">C2 (Masmorra)</option>
+                                <option value="C3">C3 (Jardim)</option>
+                                <option value="C4">C4 (Mercado)</option>
+                                <option value="C5">
+                                    C5 (Bosque - sem pista)
+                                </option>
+                                <option value="C6">C6 (Arena)</option>
+                                <option value="C7">C7 (Deserto)</option>
+                                <option value="C8">C8 (Castelo)</option>
+                                <option value="C9">C9 (Montanha)</option>
+                            </select>
+                            <input
+                                id="debugTexto"
+                                type="text"
+                                placeholder="Texto do enigma (apenas para teste)"
+                                class="btn-control btn-secondary"
+                                style="
+                                    flex: 2;
+                                    min-width: 220px;
+                                    text-align: left;
+                                "
+                            />
+                            <button
+                                class="btn-control btn-primary"
+                                id="btnSimularEnigma"
+                            >
+                                📨 Enviar
+                            </button>
+                        </div>
+                        <p
+                            style="
+                                margin-top: 8px;
+                                opacity: 0.8;
+                                font-size: 12px;
+                            "
+                        >
+                            Envia <code>responder_enigma</code> como o jogador
+                            da vez. Use ✅/❌ para confirmar e validar a regra
+                            de pista (C5 não gera).
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Modal: All Tips Cards -->
+        <div class="modal-overlay" id="modalCartas">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">🃏 Cartas de Dica</h3>
+                    <button class="modal-close" id="btnCloseCartasModal">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="cartasLista">
+                        <!-- Cards will be listed here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button
+                        class="btn-control btn-secondary"
+                        id="btnFecharCartas"
+                    >
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script src="../js/env.js"></script>
+        <script src="../js/config.js"></script>
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script src="../js/mestre.js"></script>
+    </body>
+</html>

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Crônicas de Algorion - Lobby</title>
+        <link rel="stylesheet" href="../css/style.css" />
+        <link rel="stylesheet" href="../css/lobby.css" />
+    </head>
+
+    <body class="lobby-page">
+        <div class="lobby-container">
+            <!-- Header -->
+            <div class="lobby-header">
+                <h1 class="lobby-title">Sala de Espera</h1>
+                <div class="session-info">
+                    <span class="session-label">Código da Sessão:</span>
+                    <span class="session-code" id="sessionCode">------</span>
+                    <button
+                        class="btn-copiar-small"
+                        id="btnCopiarCodigo"
+                        title="Copiar código"
+                    >
+                        📋
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área principal dividida -->
+            <div class="lobby-content">
+                <!-- Coluna esquerda: Lista de jogadores -->
+                <div class="players-section">
+                    <h2 class="section-title">Jogadores Conectados</h2>
+                    <div class="players-list" id="playersList">
+                        <!-- Jogadores serão inseridos aqui dinamicamente -->
+                        <div class="player-slot empty">
+                            <span class="waiting-text"
+                                >Aguardando jogadores...</span
+                            >
+                        </div>
+                    </div>
+                    <p class="players-count">
+                        <span id="playersConnected">0</span> / 4 jogadores
+                    </p>
+                </div>
+
+                <!-- Coluna direita: Seleção de Herói -->
+                <div class="hero-selection-section">
+                    <h2 class="section-title">Escolha seu Herói</h2>
+                    <p class="section-subtitle" id="heroSubtitle">
+                        Selecione um herói para jogar
+                    </p>
+
+                    <div class="heroes-grid" id="heroesGrid">
+                        <!-- Anão -->
+                        <div class="hero-option" data-hero="Anao">
+                            <div class="hero-card-preview">
+                                <img
+                                    src="../assets/cards/characteres/front-dwarf-character.png"
+                                    alt="Anão"
+                                    onerror="
+                                        this.src =
+                                            '../assets/cards/characteres/front-human-character.png'
+                                    "
+                                />
+                            </div>
+                            <div class="hero-info">
+                                <h3 class="hero-name">Anão</h3>
+                                <p class="hero-ability">
+                                    Reduz 1 PH no custo de enigma (1x)
+                                </p>
+                            </div>
+                            <div class="hero-status">
+                                <span class="status-available">Disponível</span>
+                            </div>
+                        </div>
+
+                        <!-- Humano -->
+                        <div class="hero-option" data-hero="Humano">
+                            <div class="hero-card-preview">
+                                <img
+                                    src="../assets/cards/characteres/front-human-character.png"
+                                    alt="Humano"
+                                />
+                            </div>
+                            <div class="hero-info">
+                                <h3 class="hero-name">Humano</h3>
+                                <p class="hero-ability">
+                                    Próximo movimento gratuito (1x)
+                                </p>
+                            </div>
+                            <div class="hero-status">
+                                <span class="status-available">Disponível</span>
+                            </div>
+                        </div>
+
+                        <!-- Sereia -->
+                        <div class="hero-option" data-hero="Sereia">
+                            <div class="hero-card-preview">
+                                <img
+                                    src="../assets/cards/characteres/front-mermaid-character.png"
+                                    alt="Sereia"
+                                    onerror="
+                                        this.src =
+                                            '../assets/cards/characteres/front-human-character.png'
+                                    "
+                                />
+                            </div>
+                            <div class="hero-info">
+                                <h3 class="hero-name">Sereia</h3>
+                                <p class="hero-ability">
+                                    Recebe dica sutil do Mestre (1x)
+                                </p>
+                            </div>
+                            <div class="hero-status">
+                                <span class="status-available">Disponível</span>
+                            </div>
+                        </div>
+
+                        <!-- Bruxa -->
+                        <div class="hero-option" data-hero="Bruxa">
+                            <div class="hero-card-preview">
+                                <img
+                                    src="../assets/cards/characteres/front-witch-character.png"
+                                    alt="Bruxa"
+                                    onerror="
+                                        this.src =
+                                            '../assets/cards/characteres/front-human-character.png'
+                                    "
+                                />
+                            </div>
+                            <div class="hero-info">
+                                <h3 class="hero-name">Bruxa</h3>
+                                <p class="hero-ability">
+                                    Revela custo de 2 cartas ocultas (1x)
+                                </p>
+                            </div>
+                            <div class="hero-status">
+                                <span class="status-available">Disponível</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Herói selecionado -->
+                    <div class="selected-hero hidden" id="selectedHero">
+                        <p>
+                            Você escolheu:
+                            <strong id="selectedHeroName">-</strong>
+                        </p>
+                        <button class="btn-change-hero" id="btnChangeHero">
+                            Trocar Herói
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer com ações -->
+            <div class="lobby-footer">
+                <!-- Área do Mestre -->
+                <div class="mestre-controls hidden" id="mestreControls">
+                    <div class="ready-status" id="readyStatus">
+                        <span class="status-icon">⏳</span>
+                        <span class="status-text"
+                            >Aguardando jogadores escolherem heróis...</span
+                        >
+                    </div>
+                    <button
+                        class="btn-iniciar-jogo"
+                        id="btnIniciarJogo"
+                        disabled
+                    >
+                        <span class="btn-icon">🎮</span>
+                        Iniciar Jogo
+                    </button>
+                </div>
+
+                <!-- Área do Jogador -->
+                <div class="jogador-controls" id="jogadorControls">
+                    <div class="waiting-message">
+                        <span class="pulse-dot"></span>
+                        <span>Aguardando o Mestre iniciar o jogo...</span>
+                    </div>
+                </div>
+
+                <button class="btn-voltar" id="btnVoltar">← Voltar</button>
+            </div>
+        </div>
+
+        <script src="../js/env.js"></script>
+        <script src="../js/config.js"></script>
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script src="../js/lobby.js"></script>
+    </body>
+</html>
