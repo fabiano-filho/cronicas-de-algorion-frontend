@@ -3,6 +3,13 @@ const modal = document.getElementById('cardModal')
 const modalClose = document.getElementById('modalClose')
 const modalCardContainer = document.getElementById('modalCardContainer')
 
+// Hero ability UI
+const btnUsarHabilidade = document.getElementById('btnUsarHabilidade')
+const heroAbilityStatus = document.getElementById('heroAbilityStatus')
+
+let lastHeroTipo = null
+let lastAbilityUsed = null
+
 // Hero Card Inspection
 const heroCard = document.getElementById('heroCard')
 if (heroCard) {
@@ -180,6 +187,119 @@ function resolveAssetUrl(source) {
     return source
 }
 
+function getHeroAssetsByTipo(tipo) {
+    switch (tipo) {
+        case 'Anao':
+            return {
+                front: '../assets/cards/characteres/front-dwarf-character.png',
+                back: '../assets/cards/characteres/back-dwarf-character.png'
+            }
+        case 'Humano':
+            return {
+                front: '../assets/cards/characteres/front-human-character.png',
+                back: '../assets/cards/characteres/back-human-character.png'
+            }
+        case 'Sereia':
+            return {
+                front: '../assets/cards/characteres/front-mermaid-character.png',
+                back: '../assets/cards/characteres/back-mermaid-character.png'
+            }
+        case 'Bruxa':
+            return {
+                front: '../assets/cards/characteres/front-witch-character.png',
+                back: '../assets/cards/characteres/back-witch-character.png'
+            }
+        default:
+            return {
+                front: '../assets/cards/characteres/front-human-character.png',
+                back: '../assets/cards/characteres/back-human-character.png'
+            }
+    }
+}
+
+function setHeroCardTipo(tipo) {
+    if (!tipo) return
+    if (lastHeroTipo === tipo) return
+    lastHeroTipo = tipo
+
+    const heroEl = document.getElementById('heroCard')
+    if (!heroEl) return
+    const frontImg = heroEl.querySelector('.hero-card-front img')
+    const backImg = heroEl.querySelector('.hero-card-back img')
+    const assets = getHeroAssetsByTipo(tipo)
+    if (frontImg) {
+        frontImg.src = assets.front
+        frontImg.alt = `Frente - ${tipo}`
+    }
+    if (backImg) {
+        backImg.src = assets.back
+        backImg.alt = `Verso - ${tipo}`
+    }
+}
+
+function setAbilityStatus(text) {
+    if (!heroAbilityStatus) return
+    heroAbilityStatus.textContent = text || ''
+}
+
+function getAbilityHint(tipo) {
+    switch (tipo) {
+        case 'Humano':
+            return 'Próximo movimento grátis.'
+        case 'Anao':
+            return 'Próximo enigma: -1 PH.'
+        case 'Sereia':
+            return 'Sinal de dica sutil enviado.'
+        case 'Bruxa':
+            return 'Revelando custos de cartas ocultas...'
+        default:
+            return ''
+    }
+}
+
+function updateAbilityButtonFromSession(session) {
+    if (!btnUsarHabilidade) return
+
+    const myPlayer = session?.listaJogadores?.find(
+        p => p?.id === sessionData.jogadorId
+    )
+    const heroTipo = myPlayer?.hero?.tipo || null
+    setHeroCardTipo(heroTipo)
+
+    const jogadorAtual =
+        session?.listaJogadores?.[session?.jogadorAtualIndex] || null
+    const isMyTurn = !!jogadorAtual && jogadorAtual.id === sessionData.jogadorId
+    const used = !!session?.habilidadesUsadasPorJogador?.[sessionData.jogadorId]
+
+    // Se acabou de marcar como usada, mostrar um feedback imediato
+    if (used && lastAbilityUsed === false) {
+        setAbilityStatus(getAbilityHint(heroTipo) || 'Habilidade usada.')
+    }
+    lastAbilityUsed = used
+
+    btnUsarHabilidade.disabled =
+        !socket ||
+        !socket.connected ||
+        !sessionData?.sessionId ||
+        !sessionData?.jogadorId ||
+        sessionData?.isMestre ||
+        !isMyTurn ||
+        used
+
+    if (!heroTipo) {
+        btnUsarHabilidade.textContent = 'Usar habilidade'
+    } else {
+        btnUsarHabilidade.textContent = `Usar habilidade (${heroTipo})`
+    }
+
+    if (!isMyTurn && !used) {
+        setAbilityStatus('Aguarde sua vez para usar.')
+    }
+    if (used) {
+        setAbilityStatus('Habilidade já usada na partida.')
+    }
+}
+
 // All hint cards data (vem do backend)
 let hintCardsData = []
 
@@ -235,6 +355,26 @@ function conectarServidor() {
         }
 
         applySessionToHints(session)
+        updateAbilityButtonFromSession(session)
+    })
+
+    socket.on('sinal_dica_sutil', data => {
+        if (data?.jogadorId !== sessionData.jogadorId) return
+        setAbilityStatus('Sereia: sinal de dica sutil enviado ao Mestre.')
+    })
+
+    socket.on('custos_cartas_revelados', data => {
+        if (data?.jogadorId !== sessionData.jogadorId) return
+        const cartas = Array.isArray(data?.cartas) ? data.cartas : []
+        if (!cartas.length) {
+            alert('Bruxa: nenhuma carta oculta para revelar agora.')
+            return
+        }
+        const msg = cartas
+            .map(c => `Carta ${c.id}: custo de exploração ${c.custoExploracao}`)
+            .join('\n')
+        alert(`Bruxa: custos revelados\n\n${msg}`)
+        setAbilityStatus('Bruxa: custos revelados.')
     })
 
     socket.on('carta_pista_adicionada', ({ carta }) => {
@@ -259,6 +399,24 @@ function conectarServidor() {
 
     socket.on('acao_negada', data => {
         alert(data?.motivo || 'Ação negada')
+    })
+}
+
+if (btnUsarHabilidade) {
+    btnUsarHabilidade.addEventListener('click', () => {
+        if (!socket || !socket.connected) {
+            alert('Sem conexão com o servidor.')
+            return
+        }
+        if (!sessionData?.sessionId || !sessionData?.jogadorId) {
+            alert('Sessão inválida.')
+            return
+        }
+        socket.emit('usar_habilidade_heroi', {
+            sessionId: sessionData.sessionId,
+            jogadorId: sessionData.jogadorId
+        })
+        setAbilityStatus('Habilidade acionada...')
     })
 }
 

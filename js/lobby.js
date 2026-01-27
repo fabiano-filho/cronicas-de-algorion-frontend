@@ -27,7 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Obter código da URL (link compartilhado)
     const params = new URLSearchParams(window.location.search)
     const codigoUrlRaw = params.get('sessao') || params.get('session')
-    const codigoUrl = codigoUrlRaw ? String(codigoUrlRaw).trim().toUpperCase() : null
+    const codigoUrl = codigoUrlRaw
+        ? String(codigoUrlRaw).trim().toUpperCase()
+        : null
 
     // Carregar dados da sessão do localStorage.
     // Importante: quem abre o link pela primeira vez não terá sessionData salvo;
