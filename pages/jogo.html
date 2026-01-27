@@ -334,7 +334,10 @@
                         >
                             Usar habilidade
                         </button>
-                        <div id="heroAbilityStatus" class="hero-ability-status"></div>
+                        <div
+                            id="heroAbilityStatus"
+                            class="hero-ability-status"
+                        ></div>
                     </div>
                 </div>
             </div>
@@ -347,6 +350,17 @@
                 <div class="modal-card-container" id="modalCardContainer">
                     <!-- Content injected via JS -->
                 </div>
+            </div>
+        </div>
+
+        <!-- House Actions Modal -->
+        <div id="actionModal" class="modal-overlay">
+            <div class="modal-content modal-content-actions">
+                <button class="modal-close" id="actionModalClose">
+                    &times;
+                </button>
+                <h3 id="actionTitle" class="action-title"></h3>
+                <div id="actionBody" class="action-body"></div>
             </div>
         </div>
 

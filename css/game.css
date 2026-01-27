@@ -580,6 +580,93 @@ body::before {
     perspective: 1000px;
     cursor: pointer;
     transition: transform 0.3s ease;
+    position: relative;
+}
+
+/* Marcadores de jogadores ("peões") */
+.house-occupants {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    display: flex;
+    gap: 4px;
+    z-index: 12;
+    pointer-events: none;
+}
+
+.pawn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.6);
+    box-shadow:
+        0 1px 6px rgba(0, 0, 0, 0.5),
+        0 0 10px rgba(255, 255, 255, 0.08);
+}
+
+.pawn.is-current {
+    outline: 2px solid rgba(240, 212, 138, 0.85);
+    outline-offset: 1px;
+}
+
+/* Destaque sutil para a casa onde VOCÊ está */
+.house-card.is-my-position .house-card-front,
+.house-card.is-my-position .house-card-back {
+    border-color: var(--my-hero-color, rgba(240, 212, 138, 0.85));
+    box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.6),
+        0 0 22px rgba(240, 212, 138, 0.35);
+}
+
+/* Modal de ações (casas) */
+.modal-content-actions {
+    max-width: 460px;
+}
+
+.action-title {
+    font-family: var(--font-display);
+    color: var(--color-gold);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.action-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid rgba(212, 168, 87, 0.28);
+    background: linear-gradient(
+        180deg,
+        rgba(42, 34, 26, 0.95),
+        rgba(26, 21, 16, 0.98)
+    );
+    color: var(--color-parchment);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover:not(:disabled) {
+    border-color: rgba(240, 212, 138, 0.7);
+    transform: translateY(-1px);
+}
+
+.action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.action-hint {
+    font-size: 0.95rem;
+    color: rgba(245, 230, 200, 0.85);
 }
 
 .house-card:hover {

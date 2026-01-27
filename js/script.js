@@ -10,6 +10,35 @@ const heroAbilityStatus = document.getElementById('heroAbilityStatus')
 let lastHeroTipo = null
 let lastAbilityUsed = null
 
+// House actions UI
+const actionModal = document.getElementById('actionModal')
+const actionModalClose = document.getElementById('actionModalClose')
+const actionTitle = document.getElementById('actionTitle')
+const actionBody = document.getElementById('actionBody')
+
+let lastSession = null
+let pendingAnswerAfterExplore = null
+
+const HERO_COLORS = {
+    Anao: '#7D7940',
+    Humano: '#B68B71',
+    Sereia: '#DA7C7C',
+    Bruxa: '#62769E'
+}
+
+// Mapa de adjacências do tabuleiro 3x3 (mesmo do backend)
+const ADJACENCIAS = {
+    C1: ['C2', 'C4'],
+    C2: ['C1', 'C3', 'C5'],
+    C3: ['C2', 'C6'],
+    C4: ['C1', 'C5', 'C7'],
+    C5: ['C2', 'C4', 'C6', 'C8'],
+    C6: ['C3', 'C5', 'C9'],
+    C7: ['C4', 'C8'],
+    C8: ['C5', 'C7', 'C9'],
+    C9: ['C6', 'C8']
+}
+
 // Hero Card Inspection
 const heroCard = document.getElementById('heroCard')
 if (heroCard) {
@@ -242,6 +271,271 @@ function setAbilityStatus(text) {
     heroAbilityStatus.textContent = text || ''
 }
 
+function closeActionModal() {
+    if (!actionModal) return
+    actionModal.classList.remove('active')
+    if (actionTitle) actionTitle.textContent = ''
+    if (actionBody) actionBody.innerHTML = ''
+    document.querySelectorAll('.house-card.selected').forEach(el => {
+        el.classList.remove('selected')
+    })
+}
+
+function openActionModal({ title, actions, hint }) {
+    if (!actionModal || !actionBody) return
+    if (actionTitle) actionTitle.textContent = title || ''
+    actionBody.innerHTML = ''
+
+    if (hint) {
+        const p = document.createElement('div')
+        p.className = 'action-hint'
+        p.textContent = hint
+        actionBody.appendChild(p)
+    }
+
+    actions.forEach(a => {
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.className = 'action-btn'
+        btn.textContent = a.label
+        if (a.disabled) btn.disabled = true
+        btn.addEventListener('click', () => {
+            if (btn.disabled) return
+            a.onClick?.()
+        })
+        actionBody.appendChild(btn)
+    })
+
+    actionModal.classList.add('active')
+}
+
+function getMyPlayer(session) {
+    return session?.listaJogadores?.find(p => p?.id === sessionData.jogadorId)
+}
+
+function getCurrentPlayer(session) {
+    return session?.listaJogadores?.[session?.jogadorAtualIndex] || null
+}
+
+function isMyTurn(session) {
+    const cur = getCurrentPlayer(session)
+    return !!cur && cur.id === sessionData.jogadorId
+}
+
+function getHouseIdFromNumber(n) {
+    return `C${n}`
+}
+
+function getHouseNumberFromId(casaId) {
+    const n = parseInt(String(casaId || '').replace('C', ''), 10)
+    return Number.isFinite(n) ? n : null
+}
+
+function getCardById(session, casaId) {
+    const flat = session?.estadoTabuleiro?.flat?.() || []
+    return flat.find(c => c && c.id === casaId) || null
+}
+
+function renderPlayerPositions(session) {
+    // remove previous markers
+    document.querySelectorAll('.house-occupants').forEach(el => el.remove())
+    document
+        .querySelectorAll('.house-card.is-my-position')
+        .forEach(el => el.classList.remove('is-my-position'))
+    document
+        .querySelectorAll('.house-card')
+        .forEach(el => el.style.removeProperty('--my-hero-color'))
+
+    const players = Array.isArray(session?.listaJogadores)
+        ? session.listaJogadores
+        : []
+
+    const current = getCurrentPlayer(session)
+    const myPlayer = getMyPlayer(session)
+
+    const groups = new Map()
+    for (const p of players) {
+        if (!p?.posicao) continue
+        const key = p.posicao
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key).push(p)
+    }
+
+    for (const [casaId, group] of groups.entries()) {
+        const n = getHouseNumberFromId(casaId)
+        if (!n) continue
+        const el = document.querySelector(`.house-card[data-house-id='${n}']`)
+        if (!el) continue
+
+        if (myPlayer?.posicao === casaId) {
+            el.classList.add('is-my-position')
+            const myTipo = myPlayer?.hero?.tipo
+            const color = HERO_COLORS[myTipo] || 'rgba(240, 212, 138, 0.85)'
+            el.style.setProperty('--my-hero-color', color)
+        }
+
+        const container = document.createElement('div')
+        container.className = 'house-occupants'
+
+        // Mostra até 4 marcadores (se tiver mais, o restante fica implícito)
+        const toShow = group.slice(0, 4)
+        toShow.forEach(p => {
+            const pawn = document.createElement('span')
+            pawn.className = 'pawn'
+            const tipo = p?.hero?.tipo
+            pawn.style.background = HERO_COLORS[tipo] || 'rgba(245,230,200,0.8)'
+            if (current?.id && p.id === current.id) {
+                pawn.classList.add('is-current')
+            }
+            container.appendChild(pawn)
+        })
+
+        el.appendChild(container)
+    }
+}
+
+function renderBoardRevelations(session) {
+    document.querySelectorAll('.house-card').forEach(cardEl => {
+        const houseNum = parseInt(cardEl.dataset.houseId || '0', 10)
+        if (!houseNum) return
+        const casaId = getHouseIdFromNumber(houseNum)
+        const revealed = !!getCardById(session, casaId)?.revelada
+        cardEl.classList.toggle('flipped', revealed)
+    })
+}
+
+function setupHouseInteractions() {
+    document.querySelectorAll('.house-card').forEach(cardEl => {
+        cardEl.addEventListener('click', e => {
+            if (!lastSession) return
+            if (!sessionData?.sessionId || !sessionData?.jogadorId) return
+            if (!actionModal) return
+
+            const houseNum = parseInt(cardEl.dataset.houseId || '0', 10)
+            if (!houseNum) return
+            const casaId = getHouseIdFromNumber(houseNum)
+            const houseName = cardEl.dataset.houseName || casaId
+
+            document
+                .querySelectorAll('.house-card.selected')
+                .forEach(el => el.classList.remove('selected'))
+            cardEl.classList.add('selected')
+
+            const myPlayer = getMyPlayer(lastSession)
+            const myPos = myPlayer?.posicao
+            const myTurn = isMyTurn(lastSession)
+            const revealed = !!getCardById(lastSession, casaId)?.revelada
+            const onThisHouse = myPos === casaId
+            const adjacent =
+                !!myPos &&
+                Array.isArray(ADJACENCIAS[myPos]) &&
+                ADJACENCIAS[myPos].includes(casaId)
+
+            const hint = !myTurn
+                ? 'Ações de casa só podem ser feitas na sua vez.'
+                : onThisHouse
+                  ? revealed
+                      ? 'Você está aqui. Carta já revelada.'
+                      : 'Você está aqui. Carta ainda não revelada.'
+                  : `Você está em ${myPos || '?'}.`
+
+            const actions = []
+
+            if (!onThisHouse) {
+                actions.push({
+                    label: 'Mover para essa casa (1 PH)',
+                    disabled: !myTurn || !adjacent,
+                    onClick: () => {
+                        socket.emit('mover_peao', {
+                            sessionId: sessionData.sessionId,
+                            jogadorId: sessionData.jogadorId,
+                            destinoId: casaId
+                        })
+                        closeActionModal()
+                    }
+                })
+
+                actions.push({
+                    label: 'Salto Livre para essa casa (2 PH)',
+                    disabled: !myTurn,
+                    onClick: () => {
+                        socket.emit('salto_livre', {
+                            sessionId: sessionData.sessionId,
+                            jogadorId: sessionData.jogadorId,
+                            destinoId: casaId
+                        })
+                        closeActionModal()
+                    }
+                })
+            } else {
+                actions.push({
+                    label: 'Explorar / Revelar carta (1 PH)',
+                    disabled: !myTurn || revealed,
+                    onClick: () => {
+                        socket.emit('explorar_carta', {
+                            sessionId: sessionData.sessionId,
+                            jogadorId: sessionData.jogadorId,
+                            custoExploracao: 1
+                        })
+                        pendingAnswerAfterExplore = null
+                        closeActionModal()
+                    }
+                })
+
+                actions.push({
+                    label: 'Revelar carta e responder',
+                    disabled: !myTurn || revealed,
+                    onClick: () => {
+                        pendingAnswerAfterExplore = casaId
+                        socket.emit('explorar_carta', {
+                            sessionId: sessionData.sessionId,
+                            jogadorId: sessionData.jogadorId,
+                            custoExploracao: 1
+                        })
+                        closeActionModal()
+                    }
+                })
+
+                actions.push({
+                    label: 'Responder casa (Resolver Enigma)',
+                    disabled: !myTurn || !revealed,
+                    onClick: () => {
+                        const texto = window.prompt(
+                            'Digite o texto do enigma/charada para enviar ao Mestre:'
+                        )
+                        if (!texto) return
+                        socket.emit('responder_enigma', {
+                            sessionId: sessionData.sessionId,
+                            jogadorId: sessionData.jogadorId,
+                            casaId,
+                            texto: String(texto)
+                        })
+                        closeActionModal()
+                    }
+                })
+
+                actions.push({
+                    label: 'Explorar novamente (2 PH)',
+                    disabled: !myTurn || !revealed,
+                    onClick: () => {
+                        socket.emit('explorar_novamente', {
+                            sessionId: sessionData.sessionId,
+                            jogadorId: sessionData.jogadorId
+                        })
+                        closeActionModal()
+                    }
+                })
+            }
+
+            openActionModal({
+                title: `${houseName} (${casaId})`,
+                hint,
+                actions
+            })
+        })
+    })
+}
+
 function getAbilityHint(tipo) {
     switch (tipo) {
         case 'Humano':
@@ -337,6 +631,7 @@ function conectarServidor() {
     })
 
     socket.on('estado_atualizado', session => {
+        lastSession = session
         const phEl = document.getElementById('storyPointsValue')
         if (phEl && typeof session.ph === 'number') {
             phEl.textContent = String(session.ph)
@@ -356,6 +651,30 @@ function conectarServidor() {
 
         applySessionToHints(session)
         updateAbilityButtonFromSession(session)
+        renderPlayerPositions(session)
+        renderBoardRevelations(session)
+
+        // Se o usuário escolheu "Revelar e responder", aguarda a carta ficar revelada
+        if (pendingAnswerAfterExplore) {
+            const revealed = !!getCardById(session, pendingAnswerAfterExplore)
+                ?.revelada
+            const myPlayer = getMyPlayer(session)
+            if (revealed && myPlayer?.posicao === pendingAnswerAfterExplore) {
+                const casaId = pendingAnswerAfterExplore
+                pendingAnswerAfterExplore = null
+                const texto = window.prompt(
+                    'Digite o texto do enigma/charada para enviar ao Mestre:'
+                )
+                if (texto) {
+                    socket.emit('responder_enigma', {
+                        sessionId: sessionData.sessionId,
+                        jogadorId: sessionData.jogadorId,
+                        casaId,
+                        texto: String(texto)
+                    })
+                }
+            }
+        }
     })
 
     socket.on('sinal_dica_sutil', data => {
@@ -371,7 +690,7 @@ function conectarServidor() {
             return
         }
         const msg = cartas
-            .map(c => `Carta ${c.id}: custo de exploração ${c.custoExploracao}`)
+            .map(c => `Carta ${c.id}: custo do enigma ${c.custoExploracao}`)
             .join('\n')
         alert(`Bruxa: custos revelados\n\n${msg}`)
         setAbilityStatus('Bruxa: custos revelados.')
@@ -399,6 +718,21 @@ function conectarServidor() {
 
     socket.on('acao_negada', data => {
         alert(data?.motivo || 'Ação negada')
+    })
+}
+
+if (actionModalClose) {
+    actionModalClose.addEventListener('click', closeActionModal)
+}
+
+if (actionModal) {
+    actionModal.addEventListener('click', e => {
+        if (
+            e.target === actionModal ||
+            e.target.classList.contains('modal-content')
+        ) {
+            closeActionModal()
+        }
     })
 }
 
@@ -720,5 +1054,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     init()
+    setupHouseInteractions()
     conectarServidor()
 })
