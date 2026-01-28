@@ -278,6 +278,25 @@ function conectarServidor() {
             addLog(`${data.jogador?.nome} errou a charada`, 'warning')
         }
     })
+
+    // Habilidades em tempo real
+    socket.on('habilidade_usada', data => {
+        const jogadorNome = data?.jogador?.nome || 'Jogador'
+        const heroi = data?.heroi || 'Herói'
+
+        if (heroi === 'Bruxa' && Array.isArray(data?.detalhes?.cartas)) {
+            const cartas = data.detalhes.cartas
+                .map(c => `${c.id} (${c.custoExploracao} PH)`)
+                .join(', ')
+            addLog(
+                `Habilidade usada: ${jogadorNome} (Bruxa) revelou custos: ${cartas}`,
+                'info'
+            )
+            return
+        }
+
+        addLog(`Habilidade usada: ${jogadorNome} (${heroi})`, 'info')
+    })
 }
 
 // =====================================================
@@ -418,10 +437,11 @@ function atualizarCharadaUI() {
     }
 
     const charada = gameState.charadaAtual
+    const textoCharada = (charada?.texto || '').trim()
 
     container.innerHTML = `
         <div class="riddle-category">Casa ${charada.casaId || '-'}</div>
-        <div class="riddle-text">${charada.texto || '(sem texto)'}</div>
+        <div class="riddle-text">${textoCharada || '(resposta verbal na chamada — valide como boa/ruim)'}</div>
         <div class="riddle-answer">
             <div class="riddle-answer-label">Jogador:</div>
             <div class="riddle-answer-text">${charada.jogador?.nome || '-'}</div>

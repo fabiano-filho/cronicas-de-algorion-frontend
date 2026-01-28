@@ -425,6 +425,7 @@ function setupHouseInteractions() {
             const myPos = myPlayer?.posicao
             const myTurn = isMyTurn(lastSession)
             const revealed = !!getCardById(lastSession, casaId)?.revelada
+            const alreadyAnswered = !!lastSession?.registrosEnigmas?.[casaId]
             const onThisHouse = myPos === casaId
             const adjacent =
                 !!myPos &&
@@ -457,7 +458,7 @@ function setupHouseInteractions() {
 
                 actions.push({
                     label: 'Salto Livre para essa casa (2 PH)',
-                    disabled: !myTurn,
+                    disabled: !myTurn || adjacent,
                     onClick: () => {
                         socket.emit('salto_livre', {
                             sessionId: sessionData.sessionId,
@@ -500,27 +501,27 @@ function setupHouseInteractions() {
                     label: 'Responder casa (Resolver Enigma)',
                     disabled: !myTurn || !revealed,
                     onClick: () => {
-                        const texto = window.prompt(
-                            'Digite o texto do enigma/charada para enviar ao Mestre:'
-                        )
-                        if (!texto) return
                         socket.emit('responder_enigma', {
                             sessionId: sessionData.sessionId,
                             jogadorId: sessionData.jogadorId,
                             casaId,
-                            texto: String(texto)
+                            // O jogo é em chamada: o jogador verbaliza a resposta ao Mestre.
+                            // Enviamos apenas o evento para liberar a validação no painel do Mestre.
+                            texto: ''
                         })
                         closeActionModal()
                     }
                 })
 
                 actions.push({
-                    label: 'Explorar novamente (2 PH)',
-                    disabled: !myTurn || !revealed,
+                    label: 'Responder novamente (2 PH)',
+                    disabled: !myTurn || !revealed || !alreadyAnswered,
                     onClick: () => {
                         socket.emit('explorar_novamente', {
                             sessionId: sessionData.sessionId,
-                            jogadorId: sessionData.jogadorId
+                            jogadorId: sessionData.jogadorId,
+                            // Resposta verbal na chamada (sem input)
+                            texto: ''
                         })
                         closeActionModal()
                     }
@@ -646,7 +647,11 @@ function conectarServidor() {
             session.listaJogadores?.[session.jogadorAtualIndex] || null
         const turnEl = document.querySelector('.turn-display strong')
         if (turnEl) {
-            turnEl.textContent = currentPlayer?.nome || '-'
+            const isMyTurn =
+                !!currentPlayer && currentPlayer.id === sessionData.jogadorId
+            turnEl.textContent = isMyTurn
+                ? 'Sua vez'
+                : currentPlayer?.nome || '-'
         }
 
         applySessionToHints(session)
@@ -662,17 +667,12 @@ function conectarServidor() {
             if (revealed && myPlayer?.posicao === pendingAnswerAfterExplore) {
                 const casaId = pendingAnswerAfterExplore
                 pendingAnswerAfterExplore = null
-                const texto = window.prompt(
-                    'Digite o texto do enigma/charada para enviar ao Mestre:'
-                )
-                if (texto) {
-                    socket.emit('responder_enigma', {
-                        sessionId: sessionData.sessionId,
-                        jogadorId: sessionData.jogadorId,
-                        casaId,
-                        texto: String(texto)
-                    })
-                }
+                socket.emit('responder_enigma', {
+                    sessionId: sessionData.sessionId,
+                    jogadorId: sessionData.jogadorId,
+                    casaId,
+                    texto: ''
+                })
             }
         }
     })
@@ -694,6 +694,83 @@ function conectarServidor() {
             .join('\n')
         alert(`Bruxa: custos revelados\n\n${msg}`)
         setAbilityStatus('Bruxa: custos revelados.')
+    })
+
+    // Bruxa: jogador escolhe quais cartas ocultas quer ver o custo
+    socket.on('bruxa_escolher_cartas', data => {
+        const opcoes = Array.isArray(data?.opcoes) ? data.opcoes : []
+        if (!opcoes.length) {
+            alert('Bruxa: nenhuma carta oculta disponível agora.')
+            return
+        }
+
+        const ids = opcoes
+            .map(o => String(o?.id || ''))
+            .filter(Boolean)
+            .sort()
+
+        const escolhas = []
+
+        const abrirSelecao = () => {
+            const restantes = ids.filter(id => !escolhas.includes(id))
+            if (!restantes.length) {
+                return
+            }
+
+            openActionModal({
+                title:
+                    escolhas.length === 0
+                        ? 'Bruxa: escolha a 1ª carta'
+                        : 'Bruxa: escolha a 2ª carta (opcional)',
+                hint:
+                    escolhas.length === 0
+                        ? 'Selecione uma casa oculta para ver o custo do enigma.'
+                        : 'Selecione uma segunda casa (ou finalize).',
+                actions: [
+                    ...restantes.map(id => ({
+                        label: `Ver custo de ${id}`,
+                        disabled: false,
+                        onClick: () => {
+                            escolhas.push(id)
+                            closeActionModal()
+                            if (escolhas.length >= 2) {
+                                socket.emit('bruxa_revelar_custos', {
+                                    sessionId: sessionData.sessionId,
+                                    jogadorId: sessionData.jogadorId,
+                                    casaIds: escolhas
+                                })
+                                return
+                            }
+                            abrirSelecao()
+                        }
+                    })),
+                    {
+                        label:
+                            escolhas.length === 0
+                                ? 'Cancelar'
+                                : 'Finalizar com 1 carta',
+                        disabled: false,
+                        onClick: () => {
+                            closeActionModal()
+                            if (escolhas.length === 0) {
+                                socket.emit('bruxa_cancelar', {
+                                    sessionId: sessionData.sessionId,
+                                    jogadorId: sessionData.jogadorId
+                                })
+                                return
+                            }
+                            socket.emit('bruxa_revelar_custos', {
+                                sessionId: sessionData.sessionId,
+                                jogadorId: sessionData.jogadorId,
+                                casaIds: escolhas
+                            })
+                        }
+                    }
+                ]
+            })
+        }
+
+        abrirSelecao()
     })
 
     socket.on('carta_pista_adicionada', ({ carta }) => {
