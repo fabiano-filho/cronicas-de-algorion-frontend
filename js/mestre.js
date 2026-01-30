@@ -24,6 +24,7 @@ let gameState = {
     jogadores: [],
     eventoAtual: null,
     charadaAtual: null,
+    desafioFinalAtual: null,
     eventosRestantes: 5
 }
 
@@ -100,6 +101,14 @@ function initEventListeners() {
     document
         .getElementById('btnErrou')
         .addEventListener('click', () => validarResposta(false))
+
+    // Final challenge validation
+    document
+        .getElementById('btnFinalAcertou')
+        .addEventListener('click', () => validarDesafioFinal(true))
+    document
+        .getElementById('btnFinalErrou')
+        .addEventListener('click', () => validarDesafioFinal(false))
 
     // Game controls
     document
@@ -279,6 +288,38 @@ function conectarServidor() {
         }
     })
 
+    // Desafio final iniciado (jogador clicou / fluxo em chamada)
+    socket.on('desafio_final_iniciado', data => {
+        gameState.desafioFinalAtual = data
+        atualizarDesafioFinalUI()
+        addLog(
+            `Desafio final iniciado por ${data?.jogador?.nome || 'jogador'} (valide como ✅/❌)`,
+            'warning'
+        )
+    })
+
+    // Desafio final forçado (PH esgotado)
+    socket.on('forcar_desafio_final', data => {
+        gameState.desafioFinalAtual = {
+            motivo: 'ph_esgotado',
+            jogador: null,
+            textoEnigmaFinalMontado: data?.textoEnigmaFinalMontado || '',
+            slotsPreenchidos: false,
+            ph: 0
+        }
+        atualizarDesafioFinalUI()
+        addLog('PH esgotado: Desafio final deve ser respondido!', 'error')
+    })
+
+    socket.on('jogo_finalizado', data => {
+        gameState.desafioFinalAtual = null
+        atualizarDesafioFinalUI()
+        addLog(
+            data?.mensagem || 'Jogo finalizado',
+            data?.resultado === 'vitoria' ? 'success' : 'error'
+        )
+    })
+
     // Habilidades em tempo real
     socket.on('habilidade_usada', data => {
         const jogadorNome = data?.jogador?.nome || 'Jogador'
@@ -451,6 +492,29 @@ function atualizarCharadaUI() {
     validationBtns.style.display = 'flex'
 }
 
+function atualizarDesafioFinalUI() {
+    const container = document.getElementById('finalChallengeDisplay')
+    const buttons = document.getElementById('finalChallengeButtons')
+
+    if (!gameState.desafioFinalAtual) {
+        container.innerHTML = '<p class="no-riddle">Ainda não iniciado</p>'
+        buttons.style.display = 'none'
+        return
+    }
+
+    const d = gameState.desafioFinalAtual
+    const jogadorNome = d?.jogador?.nome || '(grupo)'
+    container.innerHTML = `
+        <div class="riddle-category">Resposta verbal na chamada</div>
+        <div class="riddle-text">Jogador: ${jogadorNome}</div>
+        <div class="riddle-answer">
+            <div class="riddle-answer-label">Ação:</div>
+            <div class="riddle-answer-text">Valide o desafio final como ✅/❌</div>
+        </div>
+    `
+    buttons.style.display = 'flex'
+}
+
 function atualizarTokens() {
     const container = document.getElementById('tokensContainer')
 
@@ -501,6 +565,26 @@ function validarResposta(acertou) {
         sessionId: sessionData.sessionId,
         jogadorId,
         quality: acertou ? 'otima' : 'ruim'
+    })
+}
+
+function validarDesafioFinal(acertou) {
+    if (!gameState.desafioFinalAtual) {
+        addLog('Nenhum desafio final para validar', 'warning')
+        return
+    }
+
+    const jogadorId =
+        lastSession?.listaJogadores?.[lastSession?.jogadorAtualIndex || 0]?.id
+    if (!jogadorId) {
+        addLog('Não foi possível identificar o jogador da vez', 'error')
+        return
+    }
+
+    socket.emit('confirmar_desafio_final', {
+        sessionId: sessionData.sessionId,
+        jogadorId,
+        correta: !!acertou
     })
 }
 

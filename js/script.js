@@ -7,6 +7,11 @@ const modalCardContainer = document.getElementById('modalCardContainer')
 const btnUsarHabilidade = document.getElementById('btnUsarHabilidade')
 const heroAbilityStatus = document.getElementById('heroAbilityStatus')
 
+// Final riddle UI
+const btnResponderEnigmaFinal = document.getElementById(
+    'btnResponderEnigmaFinal'
+)
+
 let lastHeroTipo = null
 let lastAbilityUsed = null
 
@@ -18,6 +23,35 @@ const actionBody = document.getElementById('actionBody')
 
 let lastSession = null
 let pendingAnswerAfterExplore = null
+
+function areFinalSlotsFilled(session) {
+    const slotsServer = Array.isArray(session?.slotsEnigmaFinal)
+        ? session.slotsEnigmaFinal
+        : null
+
+    if (slotsServer) {
+        return slotsServer.length > 0 && slotsServer.every(s => !!s?.cardId)
+    }
+
+    return slotsState.every(id => id !== null)
+}
+
+function updateFinalRiddleButton(session) {
+    if (!btnResponderEnigmaFinal) return
+
+    const filled = areFinalSlotsFilled(session)
+    const myTurn = isMyTurn(session)
+    const canClick =
+        filled &&
+        myTurn &&
+        !!socket &&
+        socket.connected &&
+        !!sessionData?.sessionId &&
+        !!sessionData?.jogadorId
+
+    btnResponderEnigmaFinal.style.display = filled ? 'inline-block' : 'none'
+    btnResponderEnigmaFinal.disabled = !canClick
+}
 
 const HERO_COLORS = {
     Anao: '#7D7940',
@@ -498,7 +532,7 @@ function setupHouseInteractions() {
                 })
 
                 actions.push({
-                    label: 'Responder casa (Resolver Enigma)',
+                    label: `Responder casa (${getEnigmaCostForPlayer(lastSession, casaId, sessionData.jogadorId)} PH)`,
                     disabled: !myTurn || !revealed,
                     onClick: () => {
                         socket.emit('responder_enigma', {
@@ -550,6 +584,22 @@ function getAbilityHint(tipo) {
         default:
             return ''
     }
+}
+
+function getEnigmaCostForPlayer(session, casaId, jogadorId) {
+    const base = Number(getCardById(session, casaId)?.custoExploracao ?? 1) || 0
+
+    const descontoEvento =
+        session?.eventoAtivo?.modificadores?.primeiroEnigmaDesconto &&
+        !session?.primeiroEnigmaDescontoUsado
+            ? Number(session.eventoAtivo.modificadores.primeiroEnigmaDesconto)
+            : 0
+
+    const ajusteHeroi = Number(
+        session?.descontoEnigmaHeroiPorJogador?.[jogadorId] ?? 0
+    )
+
+    return Math.max(0, base + descontoEvento + ajusteHeroi)
 }
 
 function updateAbilityButtonFromSession(session) {
@@ -656,6 +706,7 @@ function conectarServidor() {
 
         applySessionToHints(session)
         updateAbilityButtonFromSession(session)
+        updateFinalRiddleButton(session)
         renderPlayerPositions(session)
         renderBoardRevelations(session)
 
@@ -790,6 +841,7 @@ function conectarServidor() {
             applySlotsFromServer(data.slotsEnigmaFinal)
             updateDisplay()
             updateButtons()
+            updateFinalRiddleButton(lastSession)
         }
     })
 
@@ -828,6 +880,34 @@ if (btnUsarHabilidade) {
             jogadorId: sessionData.jogadorId
         })
         setAbilityStatus('Habilidade acionada...')
+    })
+}
+
+if (btnResponderEnigmaFinal) {
+    btnResponderEnigmaFinal.addEventListener('click', () => {
+        if (!lastSession) return
+        if (!isMyTurn(lastSession)) {
+            alert('Aguarde sua vez para responder o enigma final.')
+            return
+        }
+        if (!areFinalSlotsFilled(lastSession)) {
+            alert('Preencha todos os slots de dica antes de responder.')
+            return
+        }
+        if (!socket || !socket.connected) {
+            alert('Sem conexão com o servidor.')
+            return
+        }
+
+        // Jogo em chamada: o jogador verbaliza a resposta ao Mestre.
+        // Aqui apenas avisamos o Mestre para liberar a validação.
+        socket.emit('iniciar_desafio_final', {
+            sessionId: sessionData.sessionId,
+            jogadorId: sessionData.jogadorId
+        })
+        alert(
+            'Desafio final iniciado. Verbalize a resposta ao Mestre para validação.'
+        )
     })
 }
 
