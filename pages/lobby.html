@@ -26,6 +26,20 @@
                 </div>
             </div>
 
+            <!-- Nome do jogador (editável) -->
+            <div class="player-name-section" id="playerNameSection">
+                <div class="player-name-display">
+                    <span class="name-label">Seu nome:</span>
+                    <span class="current-name" id="currentPlayerName">---</span>
+                    <button class="btn-edit-name" id="btnEditName" title="Editar nome">✏️</button>
+                </div>
+                <div class="player-name-edit hidden" id="playerNameEdit">
+                    <input type="text" id="inputNewName" placeholder="Digite seu novo nome" maxlength="20" />
+                    <button class="btn-save-name" id="btnSaveName">Salvar</button>
+                    <button class="btn-cancel-name" id="btnCancelName">Cancelar</button>
+                </div>
+            </div>
+
             <!-- Área principal dividida -->
             <div class="lobby-content">
                 <!-- Coluna esquerda: Lista de jogadores -->

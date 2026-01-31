@@ -602,6 +602,27 @@ function getEnigmaCostForPlayer(session, casaId, jogadorId) {
     return Math.max(0, base + descontoEvento + ajusteHeroi)
 }
 
+function getEnigmaCostSemHeroi(session, casaId) {
+    const base = Number(getCardById(session, casaId)?.custoExploracao ?? 1) || 0
+    const descontoEvento =
+        session?.eventoAtivo?.modificadores?.primeiroEnigmaDesconto &&
+        !session?.primeiroEnigmaDescontoUsado
+            ? Number(session.eventoAtivo.modificadores.primeiroEnigmaDesconto)
+            : 0
+    return Math.max(0, base + descontoEvento)
+}
+
+function getMoveCostForPlayer(session, jogadorId) {
+    const modificadores = session?.eventoAtivo?.modificadores || {}
+    const gratuitoEvento =
+        !!modificadores?.primeiroMovimentoGratisPorJogador &&
+        !session?.primeiroMovimentoGratisUsadoPorJogador?.[jogadorId]
+    const gratuitoHeroi = !!session?.movimentoGratisHeroiPorJogador?.[jogadorId]
+    if (gratuitoEvento || gratuitoHeroi) return 0
+    const delta = Number(modificadores?.moverDelta ?? 0) || 0
+    return 1 + delta
+}
+
 function updateAbilityButtonFromSession(session) {
     if (!btnUsarHabilidade) return
 
@@ -615,6 +636,27 @@ function updateAbilityButtonFromSession(session) {
         session?.listaJogadores?.[session?.jogadorAtualIndex] || null
     const isMyTurn = !!jogadorAtual && jogadorAtual.id === sessionData.jogadorId
     const used = !!session?.habilidadesUsadasPorJogador?.[sessionData.jogadorId]
+    let ruleBlockedReason = ''
+    if (heroTipo === 'Sereia') {
+        ruleBlockedReason =
+            'A habilidade da Sereia é automática ao responder enigma.'
+    } else if (heroTipo === 'Humano') {
+        const custoMover = getMoveCostForPlayer(session, sessionData.jogadorId)
+        if (custoMover <= 0) {
+            ruleBlockedReason =
+                'A habilidade do Humano só pode ser usada quando o custo de movimento for maior que 0.'
+        }
+    } else if (heroTipo === 'Anao') {
+        const casaId = myPlayer?.posicao
+        if (casaId) {
+            const custoEnigma = getEnigmaCostSemHeroi(session, casaId)
+            if (custoEnigma <= 0) {
+                ruleBlockedReason =
+                    'A habilidade do Anão só pode ser usada quando o custo do enigma for maior que 0.'
+            }
+        }
+    }
+    const ruleBlocked = !!ruleBlockedReason
 
     // Se acabou de marcar como usada, mostrar um feedback imediato
     if (used && lastAbilityUsed === false) {
@@ -629,10 +671,13 @@ function updateAbilityButtonFromSession(session) {
         !sessionData?.jogadorId ||
         sessionData?.isMestre ||
         !isMyTurn ||
-        used
+        used ||
+        ruleBlocked
 
     if (!heroTipo) {
         btnUsarHabilidade.textContent = 'Usar habilidade'
+    } else if (heroTipo === 'Sereia') {
+        btnUsarHabilidade.textContent = 'Habilidade automática (Sereia)'
     } else {
         btnUsarHabilidade.textContent = `Usar habilidade (${heroTipo})`
     }
@@ -642,6 +687,9 @@ function updateAbilityButtonFromSession(session) {
     }
     if (used) {
         setAbilityStatus('Habilidade já usada na partida.')
+    }
+    if (!used && isMyTurn && ruleBlocked) {
+        setAbilityStatus(ruleBlockedReason)
     }
 }
 
@@ -874,6 +922,35 @@ if (btnUsarHabilidade) {
         if (!sessionData?.sessionId || !sessionData?.jogadorId) {
             alert('Sessão inválida.')
             return
+        }
+        const myPlayer = lastSession ? getMyPlayer(lastSession) : null
+        const heroTipo = myPlayer?.hero?.tipo || null
+        if (heroTipo === 'Sereia') {
+            setAbilityStatus(
+                'A habilidade da Sereia é automática ao responder enigma.'
+            )
+            return
+        }
+        if (heroTipo === 'Humano' && lastSession) {
+            const custoMover = getMoveCostForPlayer(
+                lastSession,
+                sessionData.jogadorId
+            )
+            if (custoMover <= 0) {
+                alert(
+                    'A habilidade do Humano só pode ser usada quando o custo de movimento for maior que 0.'
+                )
+                return
+            }
+        }
+        if (heroTipo === 'Anao' && lastSession) {
+            const casaId = myPlayer?.posicao
+            if (casaId && getEnigmaCostSemHeroi(lastSession, casaId) <= 0) {
+                alert(
+                    'A habilidade do Anão só pode ser usada quando o custo do enigma for maior que 0.'
+                )
+                return
+            }
         }
         socket.emit('usar_habilidade_heroi', {
             sessionId: sessionData.sessionId,

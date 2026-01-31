@@ -64,12 +64,19 @@ function initUI() {
     document.getElementById('sessionCode').textContent =
         sessionData.sessionId || '------'
 
+    // Mostrar nome do jogador
+    document.getElementById('currentPlayerName').textContent =
+        sessionData.nome || '---'
+
     // Mostrar controles apropriados (mestre vs jogador)
     if (sessionData.isMestre) {
         document.getElementById('mestreControls').classList.remove('hidden')
         document.getElementById('jogadorControls').classList.add('hidden')
         document.getElementById('heroSubtitle').textContent =
             'Como Mestre, você pode observar a seleção dos jogadores'
+
+        // Esconder seção de edição de nome para o mestre
+        document.getElementById('playerNameSection').classList.add('hidden')
 
         // Desabilitar seleção de herói para o mestre
         document.querySelectorAll('.hero-option').forEach(option => {
@@ -119,6 +126,18 @@ function initEventListeners() {
                 btn.textContent = '📋'
             }, 1500)
         })
+    })
+
+    // Editar nome
+    document.getElementById('btnEditName').addEventListener('click', abrirEdicaoNome)
+    document.getElementById('btnSaveName').addEventListener('click', salvarNovoNome)
+    document.getElementById('btnCancelName').addEventListener('click', cancelarEdicaoNome)
+
+    // Enter para salvar nome
+    document.getElementById('inputNewName').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            salvarNovoNome()
+        }
     })
 }
 
@@ -175,6 +194,41 @@ function trocarHeroi() {
     socket.emit('remover_heroi', {
         sessionId: sessionData.sessionId,
         jogadorId: sessionData.jogadorId
+    })
+}
+
+// =====================================================
+// EDIÇÃO DE NOME
+// =====================================================
+
+function abrirEdicaoNome() {
+    document.getElementById('playerNameEdit').classList.remove('hidden')
+    document.getElementById('inputNewName').value = sessionData.nome || ''
+    document.getElementById('inputNewName').focus()
+}
+
+function cancelarEdicaoNome() {
+    document.getElementById('playerNameEdit').classList.add('hidden')
+    document.getElementById('inputNewName').value = ''
+}
+
+function salvarNovoNome() {
+    const novoNome = document.getElementById('inputNewName').value.trim()
+
+    if (!novoNome) {
+        alert('O nome não pode estar vazio.')
+        return
+    }
+
+    if (novoNome === sessionData.nome) {
+        cancelarEdicaoNome()
+        return
+    }
+
+    socket.emit('alterar_nome', {
+        sessionId: sessionData.sessionId,
+        jogadorId: sessionData.jogadorId,
+        novoNome
     })
 }
 
@@ -382,6 +436,15 @@ function conectarServidor() {
         alert('Sessão não encontrada ou expirada.')
         localStorage.removeItem('algorion_session')
         window.location.href = 'home.html'
+    })
+
+    // Nome alterado com sucesso
+    socket.on('nome_alterado', data => {
+        console.log('Nome alterado:', data)
+        sessionData.nome = data.novoNome
+        salvarSessaoLocal()
+        document.getElementById('currentPlayerName').textContent = data.novoNome
+        cancelarEdicaoNome()
     })
 }
 
