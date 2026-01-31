@@ -11,6 +11,7 @@ const heroAbilityStatus = document.getElementById('heroAbilityStatus')
 const btnResponderEnigmaFinal = document.getElementById(
     'btnResponderEnigmaFinal'
 )
+const btnSairSessao = document.getElementById('btnSairSessao')
 
 let lastHeroTipo = null
 let lastAbilityUsed = null
@@ -40,16 +41,20 @@ function updateFinalRiddleButton(session) {
     if (!btnResponderEnigmaFinal) return
 
     const filled = areFinalSlotsFilled(session)
+    const phZerado = typeof session?.ph === 'number' && session.ph <= 0
     const myTurn = isMyTurn(session)
+    const shouldShow = filled || phZerado
     const canClick =
-        filled &&
+        shouldShow &&
         myTurn &&
         !!socket &&
         socket.connected &&
         !!sessionData?.sessionId &&
         !!sessionData?.jogadorId
 
-    btnResponderEnigmaFinal.style.display = filled ? 'inline-block' : 'none'
+    btnResponderEnigmaFinal.style.display = shouldShow
+        ? 'inline-block'
+        : 'none'
     btnResponderEnigmaFinal.disabled = !canClick
 }
 
@@ -460,6 +465,7 @@ function setupHouseInteractions() {
             const myTurn = isMyTurn(lastSession)
             const revealed = !!getCardById(lastSession, casaId)?.revelada
             const alreadyAnswered = !!lastSession?.registrosEnigmas?.[casaId]
+            const c5Revealed = !!getCardById(lastSession, 'C5')?.revelada
             const myPendingAnswer =
                 lastSession?.riddlePendente?.jogadorId ===
                 sessionData.jogadorId
@@ -482,7 +488,7 @@ function setupHouseInteractions() {
             if (!onThisHouse) {
                 actions.push({
                     label: 'Mover para essa casa (1 PH)',
-                    disabled: !myTurn || !adjacent,
+                    disabled: !myTurn || !adjacent || !c5Revealed,
                     onClick: () => {
                         socket.emit('mover_peao', {
                             sessionId: sessionData.sessionId,
@@ -495,7 +501,7 @@ function setupHouseInteractions() {
 
                 actions.push({
                     label: 'Salto Livre para essa casa (2 PH)',
-                    disabled: !myTurn || adjacent,
+                    disabled: !myTurn || adjacent || !c5Revealed,
                     onClick: () => {
                         socket.emit('salto_livre', {
                             sessionId: sessionData.sessionId,
@@ -786,6 +792,12 @@ function conectarServidor() {
         setAbilityStatus('Sereia: sinal de dica sutil enviado ao Mestre.')
     })
 
+    socket.on('enigma_exibido', data => {
+        if (!data?.texto) return
+        const casaId = data?.casaId ? ` (${data.casaId})` : ''
+        alert(`Enigma${casaId}:\n\n${data.texto}`)
+    })
+
     socket.on('custos_cartas_revelados', data => {
         if (data?.jogadorId !== sessionData.jogadorId) return
         const cartas = Array.isArray(data?.cartas) ? data.cartas : []
@@ -901,6 +913,12 @@ function conectarServidor() {
     socket.on('acao_negada', data => {
         alert(data?.motivo || 'Ação negada')
     })
+
+    socket.on('sessao_nao_encontrada', () => {
+        alert('Sessão não encontrada ou expirada.')
+        localStorage.removeItem('algorion_session')
+        window.location.href = 'home.html'
+    })
 }
 
 if (actionModalClose) {
@@ -990,6 +1008,15 @@ if (btnResponderEnigmaFinal) {
         alert(
             'Desafio final iniciado. Verbalize a resposta ao Mestre para validação.'
         )
+    })
+}
+
+if (btnSairSessao) {
+    btnSairSessao.addEventListener('click', () => {
+        if (confirm('Tem certeza que deseja sair da sessão?')) {
+            localStorage.removeItem('algorion_session')
+            window.location.href = 'home.html'
+        }
     })
 }
 

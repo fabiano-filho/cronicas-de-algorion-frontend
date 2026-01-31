@@ -173,6 +173,27 @@ body {
     margin-top: 0.5rem;
 }
 
+.player-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.6rem;
+}
+
+.btn-remove-player {
+    background: rgba(255, 77, 77, 0.15);
+    color: #ffb3b3;
+    border: 1px solid rgba(255, 77, 77, 0.35);
+    padding: 0.35rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-remove-player:hover {
+    background: rgba(255, 77, 77, 0.3);
+}
+
 .stat-item {
     display: flex;
     align-items: center;

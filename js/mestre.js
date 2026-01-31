@@ -120,6 +120,22 @@ function initEventListeners() {
         document.getElementById('modalCartas').classList.add('active')
         carregarCartasDica()
     })
+    const btnVirarC5 = document.getElementById('btnVirarC5')
+    if (btnVirarC5) {
+        btnVirarC5.addEventListener('click', virarCarta5)
+    }
+    const btnReiniciarSessao = document.getElementById('btnReiniciarSessao')
+    if (btnReiniciarSessao) {
+        btnReiniciarSessao.addEventListener('click', reiniciarSessao)
+    }
+    const btnExibirEnigma = document.getElementById('btnExibirEnigma')
+    if (btnExibirEnigma) {
+        btnExibirEnigma.addEventListener('click', exibirEnigma)
+    }
+    const btnSairSessao = document.getElementById('btnSairSessao')
+    if (btnSairSessao) {
+        btnSairSessao.addEventListener('click', sairSessao)
+    }
 
     // Modal: Cartas
     document
@@ -426,6 +442,7 @@ function atualizarListaJogadores() {
                 typeof jogador.ph === 'number' && jogador.ph <= 1 ? 'low' : ''
             const heroTipo = jogador.hero?.tipo || jogador.heroi || 'Sem herói'
             const posicao = jogador.posicao ?? '-'
+            const podeRemover = jogador.id !== sessionData.mestreId
 
             return `
             <div class="player-card ${isCurrentTurn ? 'active-turn' : ''}">
@@ -443,10 +460,38 @@ function atualizarListaJogadores() {
                         <span class="stat-value">${posicao}</span>
                     </div>
                 </div>
+                ${
+                    podeRemover
+                        ? `<div class="player-actions">
+                        <button class="btn-remove-player" data-player-id="${jogador.id}">
+                            Remover
+                        </button>
+                    </div>`
+                        : ''
+                }
             </div>
         `
         })
         .join('')
+
+    container.querySelectorAll('.btn-remove-player').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const playerId = btn.dataset.playerId
+            if (!playerId) return
+            if (!socket || !socket.connected) {
+                addLog('Socket desconectado; não é possível remover jogador', 'error')
+                return
+            }
+            if (
+                confirm('Tem certeza que deseja remover este jogador da sessão?')
+            ) {
+                socket.emit('remover_jogador', {
+                    sessionId: sessionData.sessionId,
+                    jogadorIdRemover: playerId
+                })
+            }
+        })
+    })
 }
 
 function atualizarEventoUI() {
@@ -586,6 +631,58 @@ function validarDesafioFinal(acertou) {
         jogadorId,
         correta: !!acertou
     })
+}
+
+function virarCarta5() {
+    if (!socket || !socket.connected) {
+        addLog('Socket desconectado; não é possível virar C5', 'error')
+        return
+    }
+    socket.emit('virar_carta5', { sessionId: sessionData.sessionId })
+    addLog('Carta C5 revelada pelo Mestre.', 'info')
+}
+
+function reiniciarSessao() {
+    if (!socket || !socket.connected) {
+        addLog('Socket desconectado; não é possível reiniciar a sessão', 'error')
+        return
+    }
+    if (!confirm('Reiniciar a sessão? Isso resetará o jogo atual.')) return
+    socket.emit('reiniciar_sessao', { sessionId: sessionData.sessionId })
+    addLog('Sessão reiniciada pelo Mestre.', 'warning')
+}
+
+function exibirEnigma() {
+    if (!socket || !socket.connected) {
+        addLog('Socket desconectado; não é possível exibir enigma', 'error')
+        return
+    }
+    const casaId = document.getElementById('mestreCasaSelect')?.value
+    const texto = document.getElementById('mestreTextoEnigma')?.value?.trim()
+    if (!casaId) {
+        addLog('Selecione uma casa para exibir o enigma', 'warning')
+        return
+    }
+    if (!texto) {
+        addLog('Informe o texto do enigma', 'warning')
+        return
+    }
+
+    socket.emit('mestre_exibir_enigma', {
+        sessionId: sessionData.sessionId,
+        casaId,
+        texto
+    })
+    const input = document.getElementById('mestreTextoEnigma')
+    if (input) input.value = ''
+    addLog(`Enigma exibido para ${casaId}.`, 'info')
+}
+
+function sairSessao() {
+    if (confirm('Tem certeza que deseja sair da sessão?')) {
+        localStorage.removeItem('algorion_session')
+        window.location.href = 'home.html'
+    }
 }
 
 function avancarTurno() {

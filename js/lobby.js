@@ -44,10 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return
     }
 
-    // Se veio com código na URL (ex.: jogador abriu o link), sincronizar.
+    // Se veio com código na URL (ex.: jogador abriu o link), garantir novo cadastro.
     if (codigoUrl && codigoUrl !== sessionData.sessionId) {
-        sessionData.sessionId = codigoUrl
-        salvarSessaoLocal()
+        localStorage.removeItem('algorion_session')
+        window.location.href = `home.html?sessao=${encodeURIComponent(codigoUrl)}`
+        return
+    }
+
+    if (!sessionData?.nome) {
+        localStorage.removeItem('algorion_session')
+        window.location.href = `home.html?sessao=${encodeURIComponent(codigoUrl || '')}`
+        return
     }
 
     initUI()
