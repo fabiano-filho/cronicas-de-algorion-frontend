@@ -460,6 +460,9 @@ function setupHouseInteractions() {
             const myTurn = isMyTurn(lastSession)
             const revealed = !!getCardById(lastSession, casaId)?.revelada
             const alreadyAnswered = !!lastSession?.registrosEnigmas?.[casaId]
+            const myPendingAnswer =
+                lastSession?.riddlePendente?.jogadorId ===
+                sessionData.jogadorId
             const onThisHouse = myPos === casaId
             const adjacent =
                 !!myPos &&
@@ -519,7 +522,7 @@ function setupHouseInteractions() {
 
                 actions.push({
                     label: 'Revelar carta e responder',
-                    disabled: !myTurn || revealed,
+                    disabled: !myTurn || revealed || myPendingAnswer,
                     onClick: () => {
                         pendingAnswerAfterExplore = casaId
                         socket.emit('explorar_carta', {
@@ -531,32 +534,34 @@ function setupHouseInteractions() {
                     }
                 })
 
+                const responderCusto = alreadyAnswered
+                    ? 2
+                    : getEnigmaCostForPlayer(
+                          lastSession,
+                          casaId,
+                          sessionData.jogadorId
+                      )
                 actions.push({
-                    label: `Responder casa (${getEnigmaCostForPlayer(lastSession, casaId, sessionData.jogadorId)} PH)`,
-                    disabled: !myTurn || !revealed,
+                    label: `Responder enigma (${responderCusto} PH)`,
+                    disabled: !myTurn || !revealed || myPendingAnswer,
                     onClick: () => {
-                        socket.emit('responder_enigma', {
-                            sessionId: sessionData.sessionId,
-                            jogadorId: sessionData.jogadorId,
-                            casaId,
-                            // O jogo é em chamada: o jogador verbaliza a resposta ao Mestre.
-                            // Enviamos apenas o evento para liberar a validação no painel do Mestre.
-                            texto: ''
-                        })
-                        closeActionModal()
-                    }
-                })
-
-                actions.push({
-                    label: 'Responder novamente (2 PH)',
-                    disabled: !myTurn || !revealed || !alreadyAnswered,
-                    onClick: () => {
-                        socket.emit('explorar_novamente', {
-                            sessionId: sessionData.sessionId,
-                            jogadorId: sessionData.jogadorId,
-                            // Resposta verbal na chamada (sem input)
-                            texto: ''
-                        })
+                        if (alreadyAnswered) {
+                            socket.emit('explorar_novamente', {
+                                sessionId: sessionData.sessionId,
+                                jogadorId: sessionData.jogadorId,
+                                // Resposta verbal na chamada (sem input)
+                                texto: ''
+                            })
+                        } else {
+                            socket.emit('responder_enigma', {
+                                sessionId: sessionData.sessionId,
+                                jogadorId: sessionData.jogadorId,
+                                casaId,
+                                // O jogo é em chamada: o jogador verbaliza a resposta ao Mestre.
+                                // Enviamos apenas o evento para liberar a validação no painel do Mestre.
+                                texto: ''
+                            })
+                        }
                         closeActionModal()
                     }
                 })
