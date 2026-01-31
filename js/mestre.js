@@ -658,24 +658,16 @@ function exibirEnigma() {
         return
     }
     const casaId = document.getElementById('mestreCasaSelect')?.value
-    const texto = document.getElementById('mestreTextoEnigma')?.value?.trim()
     if (!casaId) {
         addLog('Selecione uma casa para exibir o enigma', 'warning')
-        return
-    }
-    if (!texto) {
-        addLog('Informe o texto do enigma', 'warning')
         return
     }
 
     socket.emit('mestre_exibir_enigma', {
         sessionId: sessionData.sessionId,
-        casaId,
-        texto
+        casaId
     })
-    const input = document.getElementById('mestreTextoEnigma')
-    if (input) input.value = ''
-    addLog(`Enigma exibido para ${casaId}.`, 'info')
+    addLog(`Desafio exibido para ${casaId}.`, 'info')
 }
 
 function sairSessao() {
