@@ -795,7 +795,7 @@ function conectarServidor() {
     socket.on('enigma_exibido', data => {
         if (!data?.texto) return
         const casaId = data?.casaId ? ` (${data.casaId})` : ''
-        alert(`Enigma${casaId}:\n\n${data.texto}`)
+        alert(`Desafio${casaId}:\n\n${data.texto}`)
     })
 
     socket.on('custos_cartas_revelados', data => {
