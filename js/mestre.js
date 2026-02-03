@@ -16,6 +16,31 @@ let sessionData = {
     isMestre: false
 }
 
+const ui = window.AlgorionUI || null
+const showToast = (message, variant = 'info', options = {}) => {
+    ui?.toast?.(message, { variant, ...options })
+}
+const showAlertModal = options =>
+    ui?.modal?.alert?.(options) ?? Promise.resolve()
+const showConfirmModal = options =>
+    ui?.modal?.confirm?.(options) ?? Promise.resolve(false)
+const redirectWithModal = async ({
+    title,
+    message,
+    to,
+    clearSession = true
+}) => {
+    await showAlertModal({
+        title,
+        message,
+        confirmText: 'Voltar'
+    })
+    if (clearSession) {
+        localStorage.removeItem('algorion_session')
+    }
+    window.location.href = to
+}
+
 // Estado do jogo
 let gameState = {
     rodada: 1,
@@ -30,6 +55,14 @@ let gameState = {
 
 let lastSession = null
 
+// Cores usadas no tabuleiro (mesmo mapeamento do jogo)
+const HERO_COLORS = {
+    Anao: '#7D7940',
+    Humano: '#B68B71',
+    Sereia: '#DA7C7C',
+    Bruxa: '#62769E'
+}
+
 // Estado do cronômetro
 let timerState = {
     seconds: 60,
@@ -42,17 +75,24 @@ let timerState = {
 // INICIALIZAÇÃO
 // =====================================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Verificar se é mestre
     if (!carregarSessaoLocal()) {
-        alert('Sessão não encontrada. Redirecionando...')
-        window.location.href = 'home.html'
+        await redirectWithModal({
+            title: 'Sessão não encontrada',
+            message: 'Sessão não encontrada. Redirecionando...',
+            to: 'home.html'
+        })
         return
     }
 
     if (!sessionData.isMestre) {
-        alert('Acesso negado. Apenas o Mestre pode acessar esta página.')
-        window.location.href = 'jogo.html'
+        await redirectWithModal({
+            title: 'Acesso negado',
+            message: 'Apenas o Mestre pode acessar esta página.',
+            to: 'jogo.html',
+            clearSession: false
+        })
         return
     }
 
@@ -230,15 +270,18 @@ function conectarServidor() {
     // GAME EVENTS
     // =====================================================
 
-    socket.on('sessao_nao_encontrada', () => {
+    socket.on('sessao_nao_encontrada', async () => {
         addLog('Sessão não encontrada no servidor', 'error')
-        alert('Sessão não encontrada. Volte ao lobby.')
-        window.location.href = 'lobby.html'
+        await redirectWithModal({
+            title: 'Sessão não encontrada',
+            message: 'Sessão não encontrada. Volte ao lobby.',
+            to: 'lobby.html'
+        })
     })
 
     socket.on('acao_negada', data => {
         addLog(`Ação negada: ${data?.motivo || 'sem detalhes'}`, 'warning')
-        alert(data?.motivo || 'Ação negada')
+        showToast(data?.motivo || 'Ação negada', 'warning')
     })
 
     socket.on('lobby_atualizado', payload => {
@@ -415,8 +458,87 @@ function atualizarUI() {
 
     // Update riddle display
     atualizarCharadaUI()
-    // Update tokens
-    atualizarTokens()
+
+    // Tabuleiro em tempo real (mesmo grid de jogo.html)
+    renderTabuleiro(lastSession)
+}
+
+function getHouseIdFromNumber(n) {
+    return `C${n}`
+}
+
+function getHouseNumberFromId(casaId) {
+    const n = parseInt(String(casaId || '').replace('C', ''), 10)
+    return Number.isFinite(n) ? n : null
+}
+
+function getCardById(session, casaId) {
+    const flat = session?.estadoTabuleiro?.flat?.() || []
+    return flat.find(c => c && c.id === casaId) || null
+}
+
+function getCurrentPlayer(session) {
+    return session?.listaJogadores?.[session?.jogadorAtualIndex] || null
+}
+
+function renderTabuleiro(session) {
+    if (!session) return
+
+    renderBoardRevelations(session)
+    renderBoardPlayerPositions(session)
+}
+
+function renderBoardRevelations(session) {
+    document.querySelectorAll('.house-card').forEach(cardEl => {
+        const houseNum = parseInt(cardEl.dataset.houseId || '0', 10)
+        if (!houseNum) return
+        const casaId = getHouseIdFromNumber(houseNum)
+        const revealed = !!getCardById(session, casaId)?.revelada
+        cardEl.classList.toggle('flipped', revealed)
+    })
+}
+
+function renderBoardPlayerPositions(session) {
+    // Limpa marcadores antigos
+    document.querySelectorAll('.house-occupants').forEach(el => el.remove())
+
+    const players = Array.isArray(session?.listaJogadores)
+        ? session.listaJogadores
+        : []
+
+    const current = getCurrentPlayer(session)
+
+    const groups = new Map()
+    for (const p of players) {
+        if (!p?.posicao) continue
+        const key = p.posicao
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key).push(p)
+    }
+
+    for (const [casaId, group] of groups.entries()) {
+        const n = getHouseNumberFromId(casaId)
+        if (!n) continue
+        const el = document.querySelector(`.house-card[data-house-id='${n}']`)
+        if (!el) continue
+
+        const container = document.createElement('div')
+        container.className = 'house-occupants'
+
+        const toShow = group.slice(0, 6)
+        toShow.forEach(p => {
+            const pawn = document.createElement('span')
+            pawn.className = 'pawn'
+            const tipo = p?.hero?.tipo
+            pawn.style.background = HERO_COLORS[tipo] || 'rgba(245,230,200,0.8)'
+            if (current?.id && p.id === current.id) {
+                pawn.classList.add('is-current')
+            }
+            container.appendChild(pawn)
+        })
+
+        el.appendChild(container)
+    }
 }
 
 function atualizarListaJogadores() {
@@ -475,18 +597,27 @@ function atualizarListaJogadores() {
         .join('')
 
     container.querySelectorAll('.btn-remove-player').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             const playerId = btn.dataset.playerId
             if (!playerId) return
             if (!socket || !socket.connected) {
-                addLog('Socket desconectado; não é possível remover jogador', 'error')
+                addLog(
+                    'Socket desconectado; não é possível remover jogador',
+                    'error'
+                )
                 return
             }
-            if (
-                confirm('Tem certeza que deseja remover este jogador da sessão?')
-            ) {
+            const ok = await showConfirmModal({
+                title: 'Remover jogador?',
+                message:
+                    'Tem certeza que deseja remover este jogador da sessão?',
+                variant: 'danger',
+                confirmText: 'Remover'
+            })
+            if (ok) {
                 socket.emit('remover_jogador', {
                     sessionId: sessionData.sessionId,
+                    mestreId: sessionData.mestreId,
                     jogadorIdRemover: playerId
                 })
             }
@@ -563,6 +694,10 @@ function atualizarDesafioFinalUI() {
 function atualizarTokens() {
     const container = document.getElementById('tokensContainer')
 
+    // O tabuleiro do mestre agora usa o grid (board-grid) e marcadores por casa.
+    // Mantemos esta função por compatibilidade, mas sem container ela não faz nada.
+    if (!container) return
+
     if (!gameState.jogadores || gameState.jogadores.length === 0) {
         container.innerHTML = ''
         return
@@ -608,6 +743,7 @@ function validarResposta(acertou) {
 
     socket.emit('confirm_answer', {
         sessionId: sessionData.sessionId,
+        mestreId: sessionData.mestreId,
         jogadorId,
         quality: acertou ? 'otima' : 'ruim'
     })
@@ -628,6 +764,7 @@ function validarDesafioFinal(acertou) {
 
     socket.emit('confirmar_desafio_final', {
         sessionId: sessionData.sessionId,
+        mestreId: sessionData.mestreId,
         jogadorId,
         correta: !!acertou
     })
@@ -638,17 +775,32 @@ function virarCarta5() {
         addLog('Socket desconectado; não é possível virar C5', 'error')
         return
     }
-    socket.emit('virar_carta5', { sessionId: sessionData.sessionId })
+    socket.emit('virar_carta5', {
+        sessionId: sessionData.sessionId,
+        mestreId: sessionData.mestreId
+    })
     addLog('Carta C5 revelada pelo Mestre.', 'info')
 }
 
-function reiniciarSessao() {
+async function reiniciarSessao() {
     if (!socket || !socket.connected) {
-        addLog('Socket desconectado; não é possível reiniciar a sessão', 'error')
+        addLog(
+            'Socket desconectado; não é possível reiniciar a sessão',
+            'error'
+        )
         return
     }
-    if (!confirm('Reiniciar a sessão? Isso resetará o jogo atual.')) return
-    socket.emit('reiniciar_sessao', { sessionId: sessionData.sessionId })
+    const ok = await showConfirmModal({
+        title: 'Reiniciar sessão?',
+        message: 'Isso resetará o jogo atual.',
+        variant: 'danger',
+        confirmText: 'Reiniciar'
+    })
+    if (!ok) return
+    socket.emit('reiniciar_sessao', {
+        sessionId: sessionData.sessionId,
+        mestreId: sessionData.mestreId
+    })
     addLog('Sessão reiniciada pelo Mestre.', 'warning')
 }
 
@@ -665,13 +817,26 @@ function exibirEnigma() {
 
     socket.emit('mestre_exibir_enigma', {
         sessionId: sessionData.sessionId,
+        mestreId: sessionData.mestreId,
         casaId
     })
     addLog(`Desafio exibido para ${casaId}.`, 'info')
 }
 
-function sairSessao() {
-    if (confirm('Tem certeza que deseja sair da sessão?')) {
+async function sairSessao() {
+    const ok = await showConfirmModal({
+        title: 'Sair da sessão?',
+        message: 'Tem certeza que deseja sair da sessão?',
+        variant: 'warning',
+        confirmText: 'Sair'
+    })
+    if (ok) {
+        if (socket?.connected && sessionData?.sessionId && sessionData?.jogadorId) {
+            socket.emit('sair_sessao', {
+                sessionId: sessionData.sessionId,
+                jogadorId: sessionData.jogadorId
+            })
+        }
         localStorage.removeItem('algorion_session')
         window.location.href = 'home.html'
     }
@@ -852,6 +1017,7 @@ function iniciarTimer() {
     if (socket?.connected) {
         socket.emit('abrir_cronometro', {
             sessionId: sessionData.sessionId,
+            mestreId: sessionData.mestreId,
             tempo: timerState.seconds
         })
     }
@@ -881,6 +1047,7 @@ function pararTimer() {
     if (socket?.connected) {
         socket.emit('abrir_cronometro', {
             sessionId: sessionData.sessionId,
+            mestreId: sessionData.mestreId,
             tempo: timerState.seconds
         })
     }
@@ -905,6 +1072,7 @@ function resetTimer() {
     if (socket?.connected) {
         socket.emit('abrir_cronometro', {
             sessionId: sessionData.sessionId,
+            mestreId: sessionData.mestreId,
             tempo: timerState.seconds
         })
     }
@@ -924,6 +1092,7 @@ function setTimerPreset(seconds) {
     if (socket?.connected) {
         socket.emit('abrir_cronometro', {
             sessionId: sessionData.sessionId,
+            mestreId: sessionData.mestreId,
             tempo: timerState.seconds
         })
     }

@@ -16,6 +16,11 @@ let sessionData = {
     isMestre: false
 }
 
+const ui = window.AlgorionUI || null
+const showToast = (message, variant = 'info', options = {}) => {
+    ui?.toast?.(message, { variant, ...options })
+}
+
 // =====================================================
 // INICIALIZAÇÃO
 // =====================================================
@@ -96,7 +101,7 @@ function criarSessao() {
     const nome = document.getElementById('nomeMestre').value.trim()
 
     if (!nome) {
-        alert('Por favor, digite seu nome.')
+        showToast('Por favor, digite seu nome.', 'warning')
         document.getElementById('nomeMestre').focus()
         return
     }
@@ -346,8 +351,10 @@ function conectarServidor(callback) {
 
     socket.on('connect_error', err => {
         console.error('Erro de conexão:', err)
-        alert(
-            'Erro ao conectar ao servidor. Verifique se o backend está rodando.'
+        showToast(
+            'Erro ao conectar ao servidor. Verifique se o backend está rodando.',
+            'error',
+            { dedupeKey: 'connect_error', durationMs: 5000 }
         )
     })
 

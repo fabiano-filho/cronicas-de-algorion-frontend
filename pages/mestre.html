@@ -3,31 +3,44 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Crônicas de Algorion - Painel do Mestre</title>
+        <title>Crônicas de Algorion — Painel do Mestre</title>
+        <meta
+            name="description"
+            content="Painel do Mestre de Crônicas de Algorion: controle de rodada, eventos e enigmas."
+        />
+        <meta name="theme-color" content="#0f1115" />
         <link rel="stylesheet" href="../css/mestre.css" />
+        <link rel="stylesheet" href="../css/ui-feedback.css" />
     </head>
 
     <body>
+        <noscript>
+            Para jogar Crônicas de Algorion, ative o JavaScript no seu navegador.
+        </noscript>
         <!-- Header -->
         <header class="mestre-header">
             <div class="header-left">
                 <span class="mestre-badge">👑 MESTRE</span>
                 <div class="session-info">
                     <span class="session-code" id="sessionCode">------</span>
-                    <span class="session-status" id="sessionStatus"
+                    <span class="session-status" id="sessionStatus" aria-live="polite"
                         >Conectando...</span
                     >
                 </div>
             </div>
             <div class="header-right">
-                <button class="btn-header btn-encerrar" id="btnSairSessao">
+                <button
+                    class="btn-header btn-encerrar"
+                    id="btnSairSessao"
+                    type="button"
+                >
                     🚪 Sair
                 </button>
             </div>
         </header>
 
         <!-- Main Container -->
-        <div class="mestre-container">
+        <div class="mestre-container" id="main">
             <!-- Left Sidebar - Players -->
             <aside class="sidebar-players">
                 <h2 class="sidebar-title"><span>👥</span> Jogadores</h2>
@@ -74,17 +87,198 @@
                         <h2 class="section-title">🎮 Tabuleiro</h2>
                     </div>
                     <div class="board-preview">
-                        <img
-                            src="../assets/tabuleiro cronicas.png"
-                            alt="Tabuleiro"
-                            class="board-image"
-                            id="boardImage"
-                        />
                         <div
-                            class="player-tokens-container"
-                            id="tokensContainer"
+                            class="board-grid mestre-board-grid"
+                            aria-label="Tabuleiro 3x3"
                         >
-                            <!-- Player tokens will be positioned here -->
+                            <div
+                                class="house-card"
+                                data-house-id="1"
+                                data-house-name="Biblioteca"
+                            >
+                                <div class="house-card-inner">
+                                    <div class="house-card-front">
+                                        <img
+                                            src="../assets/cards/houses/1-front.png"
+                                            alt="Casa 1 - Biblioteca"
+                                        />
+                                    </div>
+                                    <div class="house-card-back">
+                                        <img
+                                            src="../assets/cards/houses/1-back.png"
+                                            alt="Casa 1 - Verso"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="house-card"
+                                data-house-id="2"
+                                data-house-name="Masmorra"
+                            >
+                                <div class="house-card-inner">
+                                    <div class="house-card-front">
+                                        <img
+                                            src="../assets/cards/houses/2-front.png"
+                                            alt="Casa 2 - Masmorra"
+                                        />
+                                    </div>
+                                    <div class="house-card-back">
+                                        <img
+                                            src="../assets/cards/houses/2-back.png"
+                                            alt="Casa 2 - Verso"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="house-card"
+                                data-house-id="3"
+                                data-house-name="Jardim"
+                            >
+                                <div class="house-card-inner">
+                                    <div class="house-card-front">
+                                        <img
+                                            src="../assets/cards/houses/3-front.png"
+                                            alt="Casa 3 - Jardim"
+                                        />
+                                    </div>
+                                    <div class="house-card-back">
+                                        <img
+                                            src="../assets/cards/houses/3-back.png"
+                                            alt="Casa 3 - Verso"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="house-card"
+                                data-house-id="4"
+                                data-house-name="Mercado"
+                            >
+                                <div class="house-card-inner">
+                                    <div class="house-card-front">
+                                        <img
+                                            src="../assets/cards/houses/4-front.png"
+                                            alt="Casa 4 - Mercado"
+                                        />
+                                    </div>
+                                    <div class="house-card-back">
+                                        <img
+                                            src="../assets/cards/houses/4-back.png"
+                                            alt="Casa 4 - Verso"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="house-card"
+                                data-house-id="5"
+                                data-house-name="Bosque"
+                            >
+                                <div class="house-card-inner">
+                                    <div class="house-card-front">
+                                        <img
+                                            src="../assets/cards/houses/5-front.png"
+                                            alt="Casa 5 - Bosque"
+                                        />
+                                    </div>
+                                    <div class="house-card-back">
+                                        <img
+                                            src="../assets/cards/houses/5-back.png"
+                                            alt="Casa 5 - Verso"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="house-card"
+                                data-house-id="6"
+                                data-house-name="Arena"
+                            >
+                                <div class="house-card-inner">
+                                    <div class="house-card-front">
+                                        <img
+                                            src="../assets/cards/houses/6-front.png"
+                                            alt="Casa 6 - Arena"
+                                        />
+                                    </div>
+                                    <div class="house-card-back">
+                                        <img
+                                            src="../assets/cards/houses/6-back.png"
+                                            alt="Casa 6 - Verso"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="house-card"
+                                data-house-id="7"
+                                data-house-name="Deserto"
+                            >
+                                <div class="house-card-inner">
+                                    <div class="house-card-front">
+                                        <img
+                                            src="../assets/cards/houses/7-front.png"
+                                            alt="Casa 7 - Deserto"
+                                        />
+                                    </div>
+                                    <div class="house-card-back">
+                                        <img
+                                            src="../assets/cards/houses/7-back.png"
+                                            alt="Casa 7 - Verso"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="house-card"
+                                data-house-id="8"
+                                data-house-name="Castelo"
+                            >
+                                <div class="house-card-inner">
+                                    <div class="house-card-front">
+                                        <img
+                                            src="../assets/cards/houses/8-front.png"
+                                            alt="Casa 8 - Castelo"
+                                        />
+                                    </div>
+                                    <div class="house-card-back">
+                                        <img
+                                            src="../assets/cards/houses/8-back.png"
+                                            alt="Casa 8 - Verso"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="house-card"
+                                data-house-id="9"
+                                data-house-name="Montanha"
+                            >
+                                <div class="house-card-inner">
+                                    <div class="house-card-front">
+                                        <img
+                                            src="../assets/cards/houses/9-front.png"
+                                            alt="Casa 9 - Montanha"
+                                        />
+                                    </div>
+                                    <div class="house-card-back">
+                                        <img
+                                            src="../assets/cards/houses/9-back.png"
+                                            alt="Casa 9 - Verso"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -124,10 +318,18 @@
                         id="validationButtons"
                         style="display: none"
                     >
-                        <button class="btn-control btn-primary" id="btnAcertou">
+                        <button
+                            class="btn-control btn-primary"
+                            id="btnAcertou"
+                            type="button"
+                        >
                             ✅ Acertou
                         </button>
-                        <button class="btn-control btn-danger" id="btnErrou">
+                        <button
+                            class="btn-control btn-danger"
+                            id="btnErrou"
+                            type="button"
+                        >
                             ❌ Errou
                         </button>
                     </div>
@@ -145,15 +347,17 @@
                         style="display: none"
                     >
                         <button
-                            class="btn-control btn-primary"
-                            id="btnFinalAcertou"
-                        >
+                            class="btn-control btn-primary" 
+                            id="btnFinalAcertou" 
+                            type="button"
+                        > 
                             ✅ Acertou
                         </button>
                         <button
-                            class="btn-control btn-danger"
-                            id="btnFinalErrou"
-                        >
+                            class="btn-control btn-danger" 
+                            id="btnFinalErrou" 
+                            type="button"
+                        > 
                             ❌ Errou
                         </button>
                     </div>
@@ -164,9 +368,10 @@
                     <h3 class="panel-title">⚙️ Controles do Jogo</h3>
                     <div class="control-buttons">
                         <button
-                            class="btn-control btn-warning"
-                            id="btnProximoTurno"
-                        >
+                            class="btn-control btn-warning" 
+                            id="btnProximoTurno" 
+                            type="button"
+                        > 
                             ⏭️ Próximo Turno
                         </button>
                     </div>
@@ -177,36 +382,39 @@
                     <h3 class="panel-title">⏱️ Cronômetro</h3>
                     <div class="timer-display" id="timerDisplay">01:00</div>
                     <div class="timer-presets">
-                        <button class="btn-timer-preset" data-time="30">
+                        <button class="btn-timer-preset" data-time="30" type="button"> 
                             30s
                         </button>
-                        <button class="btn-timer-preset active" data-time="60">
+                        <button class="btn-timer-preset active" data-time="60" type="button"> 
                             1min
                         </button>
-                        <button class="btn-timer-preset" data-time="120">
+                        <button class="btn-timer-preset" data-time="120" type="button"> 
                             2min
                         </button>
-                        <button class="btn-timer-preset" data-time="180">
+                        <button class="btn-timer-preset" data-time="180" type="button"> 
                             3min
                         </button>
                     </div>
                     <div class="timer-controls">
                         <button
-                            class="btn-control btn-primary"
-                            id="btnIniciarTimer"
-                        >
+                            class="btn-control btn-primary" 
+                            id="btnIniciarTimer" 
+                            type="button"
+                        > 
                             ▶️ Iniciar
                         </button>
                         <button
-                            class="btn-control btn-warning"
-                            id="btnPausarTimer"
-                            disabled
+                            class="btn-control btn-warning" 
+                            id="btnPausarTimer" 
+                            type="button"
+                            disabled 
                         >
                             ⏸️ Pausar
                         </button>
                         <button
-                            class="btn-control btn-secondary"
-                            id="btnResetTimer"
+                            class="btn-control btn-secondary" 
+                            id="btnResetTimer" 
+                            type="button"
                         >
                             🔄 Reset
                         </button>
@@ -218,20 +426,23 @@
                     <h3 class="panel-title">⚡ Ações Rápidas</h3>
                     <div class="control-buttons">
                         <button
-                            class="btn-control btn-secondary"
-                            id="btnVerCartas"
+                            class="btn-control btn-secondary" 
+                            id="btnVerCartas" 
+                            type="button"
                         >
                             🃏 Ver Todas as Dicas
                         </button>
                         <button
-                            class="btn-control btn-secondary"
-                            id="btnVirarC5"
+                            class="btn-control btn-secondary" 
+                            id="btnVirarC5" 
+                            type="button"
                         >
                             🟩 Virar Carta C5
                         </button>
                         <button
-                            class="btn-control btn-danger"
-                            id="btnReiniciarSessao"
+                            class="btn-control btn-danger" 
+                            id="btnReiniciarSessao" 
+                            type="button"
                         >
                             🔄 Reiniciar Sessão
                         </button>
@@ -257,8 +468,9 @@
                                 <option value="C9">C9 (Montanha)</option>
                             </select>
                             <button
-                                class="btn-control btn-primary"
-                                id="btnExibirEnigma"
+                                class="btn-control btn-primary" 
+                                id="btnExibirEnigma" 
+                                type="button"
                             >
                                 📨 Exibir
                             </button>
@@ -302,8 +514,9 @@
                                 "
                             />
                             <button
-                                class="btn-control btn-primary"
-                                id="btnSimularEnigma"
+                                class="btn-control btn-primary" 
+                                id="btnSimularEnigma" 
+                                type="button"
                             >
                                 📨 Enviar
                             </button>
@@ -325,11 +538,22 @@
         </div>
 
         <!-- Modal: All Tips Cards -->
-        <div class="modal-overlay" id="modalCartas">
+        <div
+            class="modal-overlay"
+            id="modalCartas"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Cartas de dica"
+        >
             <div class="modal">
                 <div class="modal-header">
                     <h3 class="modal-title">🃏 Cartas de Dica</h3>
-                    <button class="modal-close" id="btnCloseCartasModal">
+                    <button
+                        class="modal-close"
+                        id="btnCloseCartasModal"
+                        type="button"
+                        aria-label="Fechar"
+                    >
                         &times;
                     </button>
                 </div>
@@ -342,6 +566,7 @@
                     <button
                         class="btn-control btn-secondary"
                         id="btnFecharCartas"
+                        type="button"
                     >
                         Fechar
                     </button>
@@ -352,6 +577,7 @@
         <script src="../js/env.js"></script>
         <script src="../js/config.js"></script>
         <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script src="../js/ui/feedback.js"></script>
         <script src="../js/mestre.js"></script>
     </body>
 </html>

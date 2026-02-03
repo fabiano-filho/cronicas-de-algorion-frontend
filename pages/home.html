@@ -3,55 +3,88 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Crônicas de Algorion - Início</title>
+        <title>Crônicas de Algorion — Início</title>
+        <meta
+            name="description"
+            content="Crie ou entre em uma sessão de Crônicas de Algorion para começar a aventura."
+        />
+
         <link rel="stylesheet" href="../css/style.css" />
         <link rel="stylesheet" href="../css/home.css" />
+        <link rel="stylesheet" href="../css/ui-feedback.css" />
     </head>
 
     <body class="home-page">
-        <div class="home-container">
-            <!-- Logo e Título -->
-            <div class="logo-section">
+        <noscript>
+            Para jogar Crônicas de Algorion, ative o JavaScript no seu navegador.
+        </noscript>
+
+        <main class="home-container" aria-label="Entrada do jogo">
+            <header class="logo-section">
                 <h1 class="game-title">Crônicas de Algorion</h1>
                 <p class="game-subtitle">Uma jornada de lógica e mistérios</p>
-            </div>
+            </header>
 
-            <!-- Formulário principal -->
-            <div class="home-card">
-                <!-- Abas de navegação -->
-                <div class="tab-navigation">
-                    <button class="tab-btn active" data-tab="criar">
+            <section class="home-card" aria-label="Gerenciar sessão">
+                <div class="tab-navigation" aria-label="Escolha uma opção">
+                    <button
+                        class="tab-btn active"
+                        data-tab="criar"
+                        id="tabBtnCriar"
+                        type="button"
+                        aria-controls="tab-criar"
+                    >
                         Criar Sessão
                     </button>
-                    <button class="tab-btn" data-tab="entrar">
+                    <button
+                        class="tab-btn"
+                        data-tab="entrar"
+                        id="tabBtnEntrar"
+                        type="button"
+                        aria-controls="tab-entrar"
+                    >
                         Entrar em Sessão
                     </button>
                 </div>
 
                 <!-- Tab: Criar Sessão -->
-                <div class="tab-content active" id="tab-criar">
+                <div
+                    class="tab-content active"
+                    id="tab-criar"
+                    role="region"
+                    aria-labelledby="tabBtnCriar"
+                >
                     <div class="form-group">
-                        <label for="nomeMestre">Seu Nome (Mestre)</label>
+                        <label for="nomeMestre">Seu nome (Mestre)</label>
                         <input
                             type="text"
                             id="nomeMestre"
+                            name="nomeMestre"
                             placeholder="Digite seu nome"
                             maxlength="30"
-                            autocomplete="off"
+                            autocomplete="nickname"
+                            autocapitalize="words"
                         />
                     </div>
 
-                    <button class="btn-primary" id="btnCriarSessao">
-                        <span class="btn-icon">⚔️</span>
-                        Criar Nova Sessão
+                    <button
+                        class="btn-primary"
+                        id="btnCriarSessao"
+                        type="button"
+                    >
+                        <span class="btn-icon" aria-hidden="true">&#x2694;&#xFE0F;</span>
+                        Criar nova sessão
                     </button>
 
-                    <!-- Área de código gerado (oculta inicialmente) -->
-                    <div class="sessao-criada hidden" id="sessaoCriada">
-                        <div class="divider"></div>
-                        <h3>Sessão Criada!</h3>
+                    <div
+                        class="sessao-criada hidden"
+                        id="sessaoCriada"
+                        aria-live="polite"
+                    >
+                        <div class="divider" aria-hidden="true"></div>
+                        <h3>Sessão criada</h3>
                         <p class="info-text">
-                            Compartilhe o código ou link com os jogadores:
+                            Compartilhe o código (ou o link) com os jogadores:
                         </p>
 
                         <div class="codigo-container">
@@ -62,9 +95,11 @@
                             <button
                                 class="btn-copiar"
                                 id="btnCopiarCodigo"
+                                type="button"
+                                aria-label="Copiar código da sessão"
                                 title="Copiar código"
                             >
-                                📋
+                                &#x1F4CB;
                             </button>
                         </div>
 
@@ -73,64 +108,87 @@
                             <button
                                 class="btn-copiar"
                                 id="btnCopiarLink"
+                                type="button"
+                                aria-label="Copiar link da sessão"
                                 title="Copiar link"
                             >
-                                📋
+                                &#x1F4CB;
                             </button>
                         </div>
 
-                        <button class="btn-secondary" id="btnIrParaLobby">
-                            Ir para o Lobby
-                            <span class="btn-arrow">→</span>
+                        <button
+                            class="btn-secondary"
+                            id="btnIrParaLobby"
+                            type="button"
+                        >
+                            Ir para o lobby
+                            <span class="btn-arrow" aria-hidden="true"
+                                >&rarr;</span
+                            >
                         </button>
                     </div>
                 </div>
 
                 <!-- Tab: Entrar em Sessão -->
-                <div class="tab-content" id="tab-entrar">
+                <div
+                    class="tab-content"
+                    id="tab-entrar"
+                    role="region"
+                    aria-labelledby="tabBtnEntrar"
+                >
                     <div class="form-group">
-                        <label for="nomeJogador">Seu Nome</label>
+                        <label for="nomeJogador">Seu nome</label>
                         <input
                             type="text"
                             id="nomeJogador"
+                            name="nomeJogador"
                             placeholder="Digite seu nome"
                             maxlength="30"
-                            autocomplete="off"
+                            autocomplete="nickname"
+                            autocapitalize="words"
                         />
                     </div>
 
                     <div class="form-group">
-                        <label for="codigoEntrar">Código da Sessão</label>
+                        <label for="codigoEntrar">Código da sessão</label>
                         <input
                             type="text"
                             id="codigoEntrar"
+                            name="codigoEntrar"
                             placeholder="Ex: ABC123"
                             maxlength="10"
                             autocomplete="off"
+                            autocapitalize="characters"
+                            spellcheck="false"
+                            inputmode="text"
                             style="text-transform: uppercase"
                         />
                     </div>
 
-                    <button class="btn-primary" id="btnEntrarSessao">
-                        <span class="btn-icon">🎮</span>
-                        Entrar na Sessão
+                    <button
+                        class="btn-primary"
+                        id="btnEntrarSessao"
+                        type="button"
+                    >
+                        <span class="btn-icon" aria-hidden="true">&#x1F3AE;</span>
+                        Entrar na sessão
                     </button>
 
-                    <div class="erro-container hidden" id="erroEntrar">
+                    <div class="erro-container hidden" id="erroEntrar" aria-live="polite">
                         <p class="erro-text"></p>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Footer -->
-            <div class="home-footer">
+            <footer class="home-footer">
                 <p>Um jogo educativo sobre Programação Orientada a Objetos</p>
-            </div>
-        </div>
+            </footer>
+        </main>
 
         <script src="../js/env.js"></script>
         <script src="../js/config.js"></script>
         <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script src="../js/ui/feedback.js"></script>
         <script src="../js/home.js"></script>
     </body>
 </html>

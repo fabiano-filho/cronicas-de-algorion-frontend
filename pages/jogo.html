@@ -3,20 +3,25 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Crônicas de Algorion - Tabuleiro</title>
+        <title>Crônicas de Algorion — Tabuleiro</title>
         <meta
             name="description"
-            content="Jogo de tabuleiro cooperativo - Crônicas de Algorion: A Linhagem Fragmentada"
+            content="Tabuleiro de Crônicas de Algorion — jogo cooperativo de enigmas e aventura."
         />
+        <meta name="theme-color" content="#1a1a1a" />
         <link rel="stylesheet" href="../css/game.css" />
+        <link rel="stylesheet" href="../css/ui-feedback.css" />
     </head>
 
     <body>
+        <noscript>
+            Para jogar Crônicas de Algorion, ative o JavaScript no seu navegador.
+        </noscript>
         <!-- Game Header -->
         <header class="game-header">
             <h1 class="game-title">Crônicas de Algorion</h1>
             <div class="story-points">
-                <span class="story-points-icon">⚡</span>
+                <span class="story-points-icon" aria-hidden="true">⚡</span>
                 <span class="story-points-value" id="storyPointsValue">40</span>
                 <span class="story-points-label">PH</span>
             </div>
@@ -28,15 +33,16 @@
         </header>
 
         <!-- Main Game Area -->
-        <div class="game-container">
+        <main class="game-container" id="main">
             <!-- Left Column: Hint Cards -->
             <div class="hint-column">
                 <button
                     class="nav-button nav-up"
                     id="scrollUp"
+                    type="button"
                     aria-label="Rolar para cima"
                 >
-                    <span>▲</span>
+                    <span aria-hidden="true">▲</span>
                 </button>
 
                 <div class="hint-cards-container">
@@ -54,9 +60,10 @@
                 <button
                     class="nav-button nav-down"
                     id="scrollDown"
+                    type="button"
                     aria-label="Rolar para baixo"
                 >
-                    <span>▼</span>
+                    <span aria-hidden="true">▼</span>
                 </button>
             </div>
 
@@ -315,7 +322,7 @@
             <div class="right-panel">
                 <!-- Event Card Area -->
                 <div class="event-card-area">
-                    <div class="event-card">
+                    <div class="event-card" id="eventCard">
                         <img
                             src="../assets/cards/events/front-event.png"
                             alt="Carta de Evento"
@@ -357,12 +364,25 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
 
         <!-- Card Inspection Modal -->
-        <div id="cardModal" class="modal-overlay">
+        <div
+            id="cardModal"
+            class="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Inspecionar carta"
+        >
             <div class="modal-content">
-                <button class="modal-close" id="modalClose">&times;</button>
+                <button
+                    class="modal-close"
+                    id="modalClose"
+                    type="button"
+                    aria-label="Fechar"
+                >
+                    &times;
+                </button>
                 <div class="modal-card-container" id="modalCardContainer">
                     <!-- Content injected via JS -->
                 </div>
@@ -370,9 +390,20 @@
         </div>
 
         <!-- House Actions Modal -->
-        <div id="actionModal" class="modal-overlay">
+        <div
+            id="actionModal"
+            class="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Ações da casa"
+        >
             <div class="modal-content modal-content-actions">
-                <button class="modal-close" id="actionModalClose">
+                <button
+                    class="modal-close"
+                    id="actionModalClose"
+                    type="button"
+                    aria-label="Fechar"
+                >
                     &times;
                 </button>
                 <h3 id="actionTitle" class="action-title"></h3>
@@ -383,6 +414,7 @@
         <script src="../js/env.js"></script>
         <script src="../js/config.js"></script>
         <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script src="../js/ui/feedback.js"></script>
         <script src="../js/script.js"></script>
     </body>
 </html>

@@ -1,0 +1,219 @@
+/* ============================================
+   Algorion UI Feedback (Toasts + Modals)
+   ============================================ */
+
+:root {
+    --alg-ui-bg: #1c1510;
+    --alg-ui-panel: rgba(24, 18, 14, 0.97);
+    --alg-ui-text: #f5e6c8;
+    --alg-ui-muted: rgba(245, 230, 200, 0.75);
+    --alg-ui-accent: var(--color-gold, #d4a857);
+    --alg-ui-accent-strong: var(--color-gold-light, #f0d48a);
+    --alg-ui-warning: #e0b460;
+    --alg-ui-error: #c76c6c;
+    --alg-ui-success: #7abf8a;
+    --alg-ui-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    --alg-ui-font-display: var(--font-display, 'Cinzel', serif);
+    --alg-ui-font-body: var(--font-body, 'Georgia', serif);
+}
+
+/* Toasts */
+.alg-ui-toast-stack {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    z-index: 2600;
+    pointer-events: none;
+}
+
+.alg-ui-toast {
+    pointer-events: auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 220px;
+    max-width: 360px;
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    background: linear-gradient(
+        180deg,
+        rgba(42, 34, 26, 0.98),
+        rgba(26, 21, 16, 0.98)
+    );
+    border: 1px solid var(--alg-ui-accent);
+    color: var(--alg-ui-text);
+    font-family: var(--alg-ui-font-body);
+    box-shadow: var(--alg-ui-shadow);
+    animation: alg-ui-toast-in 0.3s ease;
+}
+
+.alg-ui-toast.is-warning {
+    border-color: var(--alg-ui-warning);
+}
+
+.alg-ui-toast.is-error {
+    border-color: var(--alg-ui-error);
+}
+
+.alg-ui-toast.is-success {
+    border-color: var(--alg-ui-success);
+}
+
+.alg-ui-toast-text {
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.alg-ui-toast-close {
+    background: transparent;
+    border: none;
+    color: var(--alg-ui-accent-strong);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+@keyframes alg-ui-toast-in {
+    from {
+        transform: translateY(-8px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Modal */
+.alg-ui-modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    z-index: 2500;
+    padding: 1.25rem;
+}
+
+.alg-ui-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.alg-ui-modal {
+    width: min(92vw, 560px);
+    background: radial-gradient(
+        circle at top,
+        rgba(60, 48, 36, 0.95),
+        var(--alg-ui-panel)
+    );
+    border: 2px solid var(--alg-ui-accent);
+    border-radius: 16px;
+    padding: 1.5rem;
+    color: var(--alg-ui-text);
+    font-family: var(--alg-ui-font-body);
+    box-shadow: var(--alg-ui-shadow);
+    position: relative;
+}
+
+.alg-ui-modal.is-warning {
+    border-color: var(--alg-ui-warning);
+}
+
+.alg-ui-modal.is-error,
+.alg-ui-modal.is-danger {
+    border-color: var(--alg-ui-error);
+}
+
+.alg-ui-modal.is-success {
+    border-color: var(--alg-ui-success);
+}
+
+.alg-ui-modal-header {
+    margin-bottom: 0.75rem;
+}
+
+.alg-ui-modal-title {
+    font-family: var(--alg-ui-font-display);
+    font-size: 1.2rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--alg-ui-accent-strong);
+}
+
+.alg-ui-modal-body {
+    color: var(--alg-ui-text);
+    font-size: 1rem;
+    line-height: 1.5;
+    max-height: 50vh;
+    overflow: auto;
+    padding-right: 0.25rem;
+}
+
+.alg-ui-modal-pre {
+    white-space: pre-wrap;
+    font-family: inherit;
+}
+
+.alg-ui-modal-list {
+    margin-top: 0.75rem;
+    padding-left: 1.2rem;
+    color: var(--alg-ui-text);
+}
+
+.alg-ui-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.alg-ui-modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: var(--alg-ui-accent-strong);
+    font-size: 1.6rem;
+    cursor: pointer;
+}
+
+.alg-ui-btn {
+    padding: 0.6rem 1.1rem;
+    border-radius: 10px;
+    border: 1px solid var(--alg-ui-accent);
+    background: linear-gradient(
+        180deg,
+        rgba(42, 34, 26, 0.95),
+        rgba(26, 21, 16, 0.98)
+    );
+    color: var(--alg-ui-text);
+    font-family: var(--alg-ui-font-body);
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.alg-ui-btn:hover {
+    transform: translateY(-1px);
+    border-color: var(--alg-ui-accent-strong);
+}
+
+.alg-ui-btn.is-secondary {
+    border-color: rgba(245, 230, 200, 0.35);
+    color: var(--alg-ui-muted);
+}
+
+.alg-ui-btn.is-danger {
+    border-color: var(--alg-ui-error);
+}

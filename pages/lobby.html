@@ -3,50 +3,86 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Crônicas de Algorion - Lobby</title>
+        <title>Crônicas de Algorion — Lobby</title>
+        <meta
+            name="description"
+            content="Sala de espera de Crônicas de Algorion. Conecte jogadores, escolha heróis e inicie a sessão."
+        />
+
         <link rel="stylesheet" href="../css/style.css" />
         <link rel="stylesheet" href="../css/lobby.css" />
+        <link rel="stylesheet" href="../css/ui-feedback.css" />
     </head>
 
     <body class="lobby-page">
-        <div class="lobby-container">
-            <!-- Header -->
-            <div class="lobby-header">
+        <noscript>
+            Para jogar Crônicas de Algorion, ative o JavaScript no seu navegador.
+        </noscript>
+
+        <main class="lobby-container" aria-label="Sala de espera">
+            <header class="lobby-header">
                 <h1 class="lobby-title">Sala de Espera</h1>
                 <div class="session-info">
-                    <span class="session-label">Código da Sessão:</span>
+                    <span class="session-label">Código da sessão:</span>
                     <span class="session-code" id="sessionCode">------</span>
                     <button
                         class="btn-copiar-small"
                         id="btnCopiarCodigo"
+                        type="button"
+                        aria-label="Copiar código da sessão"
                         title="Copiar código"
                     >
-                        📋
+                        &#x1F4CB;
                     </button>
                 </div>
-            </div>
+            </header>
 
-            <!-- Nome do jogador (editável) -->
-            <div class="player-name-section" id="playerNameSection">
+            <section
+                class="player-name-section"
+                id="playerNameSection"
+                aria-label="Identificação do jogador"
+            >
                 <div class="player-name-display">
                     <span class="name-label">Seu nome:</span>
                     <span class="current-name" id="currentPlayerName">---</span>
-                    <button class="btn-edit-name" id="btnEditName" title="Editar nome">✏️</button>
+                    <button
+                        class="btn-edit-name"
+                        id="btnEditName"
+                        type="button"
+                        aria-label="Editar nome"
+                        title="Editar nome"
+                    >
+                        &#x270F;&#xFE0F;
+                    </button>
                 </div>
                 <div class="player-name-edit hidden" id="playerNameEdit">
-                    <input type="text" id="inputNewName" placeholder="Digite seu novo nome" maxlength="20" />
-                    <button class="btn-save-name" id="btnSaveName">Salvar</button>
-                    <button class="btn-cancel-name" id="btnCancelName">Cancelar</button>
+                    <input
+                        type="text"
+                        id="inputNewName"
+                        name="inputNewName"
+                        aria-label="Novo nome"
+                        placeholder="Digite seu novo nome"
+                        maxlength="20"
+                        autocomplete="nickname"
+                        autocapitalize="words"
+                    />
+                    <button class="btn-save-name" id="btnSaveName" type="button">
+                        Salvar
+                    </button>
+                    <button
+                        class="btn-cancel-name"
+                        id="btnCancelName"
+                        type="button"
+                    >
+                        Cancelar
+                    </button>
                 </div>
-            </div>
+            </section>
 
-            <!-- Área principal dividida -->
             <div class="lobby-content">
-                <!-- Coluna esquerda: Lista de jogadores -->
-                <div class="players-section">
+                <section class="players-section" aria-label="Jogadores conectados">
                     <h2 class="section-title">Jogadores Conectados</h2>
-                    <div class="players-list" id="playersList">
-                        <!-- Jogadores serão inseridos aqui dinamicamente -->
+                    <div class="players-list" id="playersList" aria-live="polite">
                         <div class="player-slot empty">
                             <span class="waiting-text"
                                 >Aguardando jogadores...</span
@@ -56,17 +92,15 @@
                     <p class="players-count">
                         <span id="playersConnected">0</span> / 4 jogadores
                     </p>
-                </div>
+                </section>
 
-                <!-- Coluna direita: Seleção de Herói -->
-                <div class="hero-selection-section">
+                <section class="hero-selection-section" aria-label="Seleção de herói">
                     <h2 class="section-title">Escolha seu Herói</h2>
                     <p class="section-subtitle" id="heroSubtitle">
                         Selecione um herói para jogar
                     </p>
 
                     <div class="heroes-grid" id="heroesGrid">
-                        <!-- Anão -->
                         <div class="hero-option" data-hero="Anao">
                             <div class="hero-card-preview">
                                 <img
@@ -89,7 +123,6 @@
                             </div>
                         </div>
 
-                        <!-- Humano -->
                         <div class="hero-option" data-hero="Humano">
                             <div class="hero-card-preview">
                                 <img
@@ -108,7 +141,6 @@
                             </div>
                         </div>
 
-                        <!-- Sereia -->
                         <div class="hero-option" data-hero="Sereia">
                             <div class="hero-card-preview">
                                 <img
@@ -131,7 +163,6 @@
                             </div>
                         </div>
 
-                        <!-- Bruxa -->
                         <div class="hero-option" data-hero="Bruxa">
                             <div class="hero-card-preview">
                                 <img
@@ -155,25 +186,26 @@
                         </div>
                     </div>
 
-                    <!-- Herói selecionado -->
                     <div class="selected-hero hidden" id="selectedHero">
                         <p>
                             Você escolheu:
                             <strong id="selectedHeroName">-</strong>
                         </p>
-                        <button class="btn-change-hero" id="btnChangeHero">
-                            Trocar Herói
+                        <button
+                            class="btn-change-hero"
+                            id="btnChangeHero"
+                            type="button"
+                        >
+                            Trocar herói
                         </button>
                     </div>
-                </div>
+                </section>
             </div>
 
-            <!-- Footer com ações -->
-            <div class="lobby-footer">
-                <!-- Área do Mestre -->
+            <footer class="lobby-footer">
                 <div class="mestre-controls hidden" id="mestreControls">
                     <div class="ready-status" id="readyStatus">
-                        <span class="status-icon">⏳</span>
+                        <span class="status-icon" aria-hidden="true">&#x23F3;</span>
                         <span class="status-text"
                             >Aguardando jogadores escolherem heróis...</span
                         >
@@ -181,28 +213,31 @@
                     <button
                         class="btn-iniciar-jogo"
                         id="btnIniciarJogo"
+                        type="button"
                         disabled
                     >
-                        <span class="btn-icon">🎮</span>
-                        Iniciar Jogo
+                        <span class="btn-icon" aria-hidden="true">&#x1F3AE;</span>
+                        Iniciar jogo
                     </button>
                 </div>
 
-                <!-- Área do Jogador -->
                 <div class="jogador-controls" id="jogadorControls">
                     <div class="waiting-message">
-                        <span class="pulse-dot"></span>
+                        <span class="pulse-dot" aria-hidden="true"></span>
                         <span>Aguardando o Mestre iniciar o jogo...</span>
                     </div>
                 </div>
 
-                <button class="btn-voltar" id="btnVoltar">← Voltar</button>
-            </div>
-        </div>
+                <button class="btn-voltar" id="btnVoltar" type="button">
+                    &larr; Voltar
+                </button>
+            </footer>
+        </main>
 
         <script src="../js/env.js"></script>
         <script src="../js/config.js"></script>
         <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script src="../js/ui/feedback.js"></script>
         <script src="../js/lobby.js"></script>
     </body>
 </html>

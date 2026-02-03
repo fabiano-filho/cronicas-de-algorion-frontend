@@ -25,6 +25,31 @@ const actionBody = document.getElementById('actionBody')
 let lastSession = null
 let pendingAnswerAfterExplore = null
 
+const ui = window.AlgorionUI || null
+const showToast = (message, variant = 'info', options = {}) => {
+    ui?.toast?.(message, { variant, ...options })
+}
+const showAlertModal = options =>
+    ui?.modal?.alert?.(options) ?? Promise.resolve()
+const showConfirmModal = options =>
+    ui?.modal?.confirm?.(options) ?? Promise.resolve(false)
+const redirectWithModal = async ({
+    title,
+    message,
+    to,
+    clearSession = true
+}) => {
+    await showAlertModal({
+        title,
+        message,
+        confirmText: 'Voltar'
+    })
+    if (clearSession) {
+        localStorage.removeItem('algorion_session')
+    }
+    window.location.href = to
+}
+
 function areFinalSlotsFilled(session) {
     const slotsServer = Array.isArray(session?.slotsEnigmaFinal)
         ? session.slotsEnigmaFinal
@@ -792,23 +817,36 @@ function conectarServidor() {
         setAbilityStatus('Sereia: sinal de dica sutil enviado ao Mestre.')
     })
 
-    socket.on('enigma_exibido', data => {
+    socket.on('enigma_exibido', async data => {
         if (!data?.texto) return
-        const casaId = data?.casaId ? ` (${data.casaId})` : ''
-        alert(`Desafio${casaId}:\n\n${data.texto}`)
+        const casaId = data?.casaId ? ` ${data.casaId}` : ''
+        await showAlertModal({
+            title: `Desafio${casaId}`,
+            message: data.texto,
+            pre: true,
+            confirmText: 'Fechar'
+        })
     })
 
-    socket.on('custos_cartas_revelados', data => {
+    socket.on('custos_cartas_revelados', async data => {
         if (data?.jogadorId !== sessionData.jogadorId) return
         const cartas = Array.isArray(data?.cartas) ? data.cartas : []
         if (!cartas.length) {
-            alert('Bruxa: nenhuma carta oculta para revelar agora.')
+            showToast(
+                'Bruxa: nenhuma carta oculta para revelar agora.',
+                'info'
+            )
             return
         }
-        const msg = cartas
-            .map(c => `Carta ${c.id}: custo do enigma ${c.custoExploracao}`)
-            .join('\n')
-        alert(`Bruxa: custos revelados\n\n${msg}`)
+        const items = cartas.map(
+            c => `Carta ${c.id}: custo do enigma ${c.custoExploracao}`
+        )
+        await showAlertModal({
+            title: 'Bruxa: custos revelados',
+            message: 'Confira os custos das cartas ocultas:',
+            items,
+            confirmText: 'Fechar'
+        })
         setAbilityStatus('Bruxa: custos revelados.')
     })
 
@@ -816,7 +854,7 @@ function conectarServidor() {
     socket.on('bruxa_escolher_cartas', data => {
         const opcoes = Array.isArray(data?.opcoes) ? data.opcoes : []
         if (!opcoes.length) {
-            alert('Bruxa: nenhuma carta oculta disponível agora.')
+            showToast('Bruxa: nenhuma carta oculta disponível agora.', 'info')
             return
         }
 
@@ -911,13 +949,24 @@ function conectarServidor() {
     })
 
     socket.on('acao_negada', data => {
-        alert(data?.motivo || 'Ação negada')
+        showToast(data?.motivo || 'Ação negada', 'warning')
     })
 
     socket.on('sessao_nao_encontrada', () => {
-        alert('Sessão não encontrada ou expirada.')
-        localStorage.removeItem('algorion_session')
-        window.location.href = 'home.html'
+        redirectWithModal({
+            title: 'Sessão não encontrada',
+            message: 'Sessão não encontrada ou expirada.',
+            to: 'home.html'
+        })
+    })
+
+    socket.on('voce_foi_removido', data => {
+        console.warn('Você foi removido da sessão:', data)
+        redirectWithModal({
+            title: 'Removido da sessão',
+            message: 'Você foi removido da sessão pelo Mestre.',
+            to: 'home.html'
+        })
     })
 }
 
@@ -939,11 +988,11 @@ if (actionModal) {
 if (btnUsarHabilidade) {
     btnUsarHabilidade.addEventListener('click', () => {
         if (!socket || !socket.connected) {
-            alert('Sem conexão com o servidor.')
+            showToast('Sem conexão com o servidor.', 'error')
             return
         }
         if (!sessionData?.sessionId || !sessionData?.jogadorId) {
-            alert('Sessão inválida.')
+            showToast('Sessão inválida.', 'error')
             return
         }
         const myPlayer = lastSession ? getMyPlayer(lastSession) : null
@@ -960,8 +1009,9 @@ if (btnUsarHabilidade) {
                 sessionData.jogadorId
             )
             if (custoMover <= 0) {
-                alert(
-                    'A habilidade do Humano só pode ser usada quando o custo de movimento for maior que 0.'
+                showToast(
+                    'A habilidade do Humano só pode ser usada quando o custo de movimento for maior que 0.',
+                    'warning'
                 )
                 return
             }
@@ -969,8 +1019,9 @@ if (btnUsarHabilidade) {
         if (heroTipo === 'Anao' && lastSession) {
             const casaId = myPlayer?.posicao
             if (casaId && getEnigmaCostSemHeroi(lastSession, casaId) <= 0) {
-                alert(
-                    'A habilidade do Anão só pode ser usada quando o custo do enigma for maior que 0.'
+                showToast(
+                    'A habilidade do Anão só pode ser usada quando o custo do enigma for maior que 0.',
+                    'warning'
                 )
                 return
             }
@@ -984,18 +1035,21 @@ if (btnUsarHabilidade) {
 }
 
 if (btnResponderEnigmaFinal) {
-    btnResponderEnigmaFinal.addEventListener('click', () => {
+    btnResponderEnigmaFinal.addEventListener('click', async () => {
         if (!lastSession) return
         if (!isMyTurn(lastSession)) {
-            alert('Aguarde sua vez para responder o enigma final.')
+            showToast('Aguarde sua vez para responder o enigma final.', 'warning')
             return
         }
         if (!areFinalSlotsFilled(lastSession)) {
-            alert('Preencha todos os slots de dica antes de responder.')
+            showToast(
+                'Preencha todos os slots de dica antes de responder.',
+                'warning'
+            )
             return
         }
         if (!socket || !socket.connected) {
-            alert('Sem conexão com o servidor.')
+            showToast('Sem conexão com o servidor.', 'error')
             return
         }
 
@@ -1005,15 +1059,30 @@ if (btnResponderEnigmaFinal) {
             sessionId: sessionData.sessionId,
             jogadorId: sessionData.jogadorId
         })
-        alert(
-            'Desafio final iniciado. Verbalize a resposta ao Mestre para validação.'
-        )
+        await showAlertModal({
+            title: 'Desafio final iniciado',
+            message:
+                'Verbalize a resposta ao Mestre para validação.',
+            confirmText: 'Entendido'
+        })
     })
 }
 
 if (btnSairSessao) {
-    btnSairSessao.addEventListener('click', () => {
-        if (confirm('Tem certeza que deseja sair da sessão?')) {
+    btnSairSessao.addEventListener('click', async () => {
+        const ok = await showConfirmModal({
+            title: 'Sair da sessão?',
+            message: 'Tem certeza que deseja sair da sessão?',
+            variant: 'warning',
+            confirmText: 'Sair'
+        })
+        if (ok) {
+            if (socket?.connected && sessionData?.sessionId && sessionData?.jogadorId) {
+                socket.emit('sair_sessao', {
+                    sessionId: sessionData.sessionId,
+                    jogadorId: sessionData.jogadorId
+                })
+            }
             localStorage.removeItem('algorion_session')
             window.location.href = 'home.html'
         }
