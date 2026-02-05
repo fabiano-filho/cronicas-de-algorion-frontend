@@ -514,6 +514,11 @@ body {
     border-bottom: 1px solid #c5b8a5;
 }
 
+.panel-hint {
+    font-size: 0.75rem;
+    color: #7a6a50;
+}
+
 .event-card-display {
     background: #fdfbf7;
     border-radius: 8px;

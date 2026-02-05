@@ -13,7 +13,8 @@ let sessionData = {
     mestreId: null,
     jogadorId: null,
     nome: null,
-    isMestre: false
+    isMestre: false,
+    isSpectator: false
 }
 
 const ui = window.AlgorionUI || null
@@ -122,7 +123,8 @@ function criarSessao() {
         mestreId,
         jogadorId: mestreId,
         nome,
-        isMestre: true
+        isMestre: true,
+        isSpectator: false
     }
 
     // Salvar no localStorage
@@ -215,7 +217,8 @@ function entrarSessao() {
         mestreId: null,
         jogadorId,
         nome,
-        isMestre: false
+        isMestre: false,
+        isSpectator: false
     }
 
     // Conectar ao servidor e verificar se sessão existe
@@ -235,10 +238,16 @@ function entrarSessao() {
             clearTimeout(timeout)
 
             if (data.existe) {
+                const fase = data?.fase || 'lobby'
+                sessionData.isSpectator = fase === 'jogo'
                 // Salvar no localStorage
                 salvarSessaoLocal()
-                // Redirecionar para lobby
-                window.location.href = `lobby.html?sessao=${codigo}`
+                // Redirecionar conforme fase
+                if (fase === 'jogo') {
+                    window.location.href = `jogo.html?sessao=${codigo}&spectator=1`
+                } else {
+                    window.location.href = `lobby.html?sessao=${codigo}`
+                }
             } else {
                 btnEntrar.disabled = false
                 btnEntrar.innerHTML = textoOriginal

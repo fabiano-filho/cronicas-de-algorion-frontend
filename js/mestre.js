@@ -13,7 +13,8 @@ let sessionData = {
     mestreId: null,
     jogadorId: null,
     nome: null,
-    isMestre: false
+    isMestre: false,
+    isSpectator: false
 }
 
 const ui = window.AlgorionUI || null
@@ -110,6 +111,9 @@ function carregarSessaoLocal() {
         const saved = localStorage.getItem('algorion_session')
         if (saved) {
             sessionData = JSON.parse(saved)
+            if (typeof sessionData.isSpectator !== 'boolean') {
+                sessionData.isSpectator = false
+            }
             return sessionData.sessionId !== null
         }
     } catch (e) {
@@ -131,6 +135,8 @@ function initUI() {
         sessionData.sessionId || '------'
     updateStatus('Conectando...', 'info')
     setControlsEnabled(false)
+    const btnExibir = document.getElementById('btnExibirEnigma')
+    if (btnExibir) btnExibir.disabled = true
 }
 
 function initEventListeners() {
@@ -218,6 +224,11 @@ function initEventListeners() {
     const debugEnabled =
         new URLSearchParams(window.location.search).get('debug') === '1'
     const debugPanel = document.getElementById('debugPanel')
+    const casaSelect = document.getElementById('mestreCasaSelect')
+    if (casaSelect) {
+        casaSelect.disabled = !debugEnabled
+        casaSelect.addEventListener('change', updateExibirEnigmaState)
+    }
     if (debugPanel) {
         debugPanel.style.display = debugEnabled ? 'block' : 'none'
     }
@@ -296,6 +307,32 @@ function conectarServidor() {
         atualizarEstadoJogo(data)
     })
 
+    socket.on('sessao_reiniciada', () => {
+        addLog('Sessão reiniciada pelo Mestre.', 'warning')
+        showToast('Sessão reiniciada. O jogo foi resetado.', 'info')
+    })
+
+    socket.on('sessao_sem_jogadores', async () => {
+        addLog('Todos os jogadores saíram. Retornando ao lobby.', 'warning')
+        await redirectWithModal({
+            title: 'Sem jogadores',
+            message:
+                'Todos os jogadores saíram da partida. Voltando ao lobby para aguardar novos jogadores.',
+            to: `lobby.html?sessao=${encodeURIComponent(sessionData.sessionId || '')}`,
+            clearSession: false
+        })
+    })
+
+    socket.on('sessao_encerrada', async () => {
+        addLog('Sessão encerrada (mestre saiu).', 'error')
+        await redirectWithModal({
+            title: 'Sessão encerrada',
+            message:
+                'O Mestre saiu da sessão. Você foi redirecionado para a tela inicial.',
+            to: 'home.html'
+        })
+    })
+
     socket.on('evento_ativo', evento => {
         gameState.eventoAtual = evento
         atualizarEventoUI()
@@ -318,6 +355,9 @@ function conectarServidor() {
                     p => p.id === data.jogadorAtualId
                 ) || null
         }
+        syncMestreCasaSelect(
+            data.jogadorAtualCasaId || gameState.jogadorDaVez?.posicao
+        )
         atualizarUI()
         addLog(
             `Turno - Vez de ${data.jogadorAtualNome || gameState.jogadorDaVez?.nome || 'Ninguém'}`,
@@ -329,6 +369,7 @@ function conectarServidor() {
         console.log('Charada iniciada:', data)
         gameState.charadaAtual = data
         atualizarCharadaUI()
+        updateExibirEnigmaState()
         addLog(
             `Enigma submetido (${data.casaId}) por ${data.jogador?.nome || 'jogador'}`,
             'info'
@@ -339,6 +380,7 @@ function conectarServidor() {
         console.log('Resposta validada:', data)
         gameState.charadaAtual = null
         atualizarCharadaUI()
+        updateExibirEnigmaState()
 
         if (data.acertou) {
             addLog(`${data.jogador?.nome} acertou a charada!`, 'success')
@@ -419,6 +461,8 @@ function atualizarEstadoJogo(estado) {
                 ? estado.jogadorAtualIndex
                 : 0
         gameState.jogadorDaVez = estado.listaJogadores[idx] || null
+        const casaAtual = getCurrentPlayer(estado)?.posicao
+        syncMestreCasaSelect(casaAtual)
     }
 
     if (estado?.eventoAtivo !== undefined) {
@@ -461,6 +505,7 @@ function atualizarUI() {
 
     // Tabuleiro em tempo real (mesmo grid de jogo.html)
     renderTabuleiro(lastSession)
+    updateExibirEnigmaState()
 }
 
 function getHouseIdFromNumber(n) {
@@ -475,6 +520,51 @@ function getHouseNumberFromId(casaId) {
 function getCardById(session, casaId) {
     const flat = session?.estadoTabuleiro?.flat?.() || []
     return flat.find(c => c && c.id === casaId) || null
+}
+
+function syncMestreCasaSelect(casaId) {
+    const select = document.getElementById('mestreCasaSelect')
+    if (!select || !casaId) return
+    if (select.value !== casaId) {
+        select.value = casaId
+    }
+    updateExibirEnigmaState()
+}
+
+function updateExibirEnigmaState() {
+    const btn = document.getElementById('btnExibirEnigma')
+    const select = document.getElementById('mestreCasaSelect')
+    const hintEl = document.getElementById('mestreExibirHint')
+    if (!btn || !select) return
+
+    const casaId = select.value
+    const isCasa5 = casaId === 'C5'
+    const pendente = lastSession?.riddlePendente
+    const cardRevealed = !!getCardById(lastSession, casaId)?.revelada
+    const canExibir =
+        isCasa5 || (!!pendente && pendente.casaId === casaId && cardRevealed)
+
+    btn.disabled = !canExibir
+
+    if (!hintEl) return
+    if (isCasa5) {
+        hintEl.textContent = 'A casa C5 pode ser exibida a qualquer momento.'
+        return
+    }
+    if (!pendente) {
+        hintEl.textContent =
+            'Aguardando o jogador selecionar "Responder enigma".'
+        return
+    }
+    if (pendente.casaId !== casaId) {
+        hintEl.textContent = `Enigma pendente está em ${pendente.casaId}.`
+        return
+    }
+    if (!cardRevealed) {
+        hintEl.textContent = 'A carta ainda não foi revelada.'
+        return
+    }
+    hintEl.textContent = 'Pronto para exibir o desafio.'
 }
 
 function getCurrentPlayer(session) {

@@ -13,43 +13,18 @@ let sessionData = {
     mestreId: null,
     jogadorId: null,
     nome: null,
-    isMestre: false
+    isMestre: false,
+    isSpectator: false
 }
 let heroiSelecionado = null
 let jogadoresConectados = []
 let heroisOcupados = {}
 
-const ui = window.AlgorionUI || null
-const showToast = (message, variant = 'info', options = {}) => {
-    ui?.toast?.(message, { variant, ...options })
-}
-const showAlertModal = options =>
-    ui?.modal?.alert?.(options) ?? Promise.resolve()
-const showConfirmModal = options =>
-    ui?.modal?.confirm?.(options) ?? Promise.resolve(false)
-
-const redirectWithModal = async ({
-    title,
-    message,
-    to,
-    clearSession = true
-}) => {
-    await showAlertModal({
-        title,
-        message,
-        confirmText: 'Voltar'
-    })
-    if (clearSession) {
-        localStorage.removeItem('algorion_session')
-    }
-    window.location.href = to
-}
-
 // =====================================================
 // INICIALIZAÇÃO
 // =====================================================
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     // Obter código da URL (link compartilhado)
     const params = new URLSearchParams(window.location.search)
     const codigoUrlRaw = params.get('sessao') || params.get('session')
@@ -65,12 +40,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = `home.html?sessao=${encodeURIComponent(codigoUrl)}`
             return
         }
-        await redirectWithModal({
-            title: 'Sessão não encontrada',
-            message: 'Sessão não encontrada. Redirecionando...',
-            to: 'home.html',
-            clearSession: false
-        })
+        alert('Sessão não encontrada. Redirecionando...')
+        window.location.href = 'home.html'
         return
     }
 
@@ -148,14 +119,8 @@ function initEventListeners() {
         .addEventListener('click', iniciarJogo)
 
     // Botão voltar
-    document.getElementById('btnVoltar').addEventListener('click', async () => {
-        const ok = await showConfirmModal({
-            title: 'Sair da sessão?',
-            message: 'Tem certeza que deseja sair da sessão?',
-            variant: 'warning',
-            confirmText: 'Sair'
-        })
-        if (ok) {
+    document.getElementById('btnVoltar').addEventListener('click', () => {
+        if (confirm('Tem certeza que deseja sair da sessão?')) {
             if (
                 socket?.connected &&
                 sessionData?.sessionId &&
@@ -221,31 +186,22 @@ function initEventListeners() {
 function removerJogadorDoLobby(jogadorIdRemover) {
     if (!sessionData.isMestre) return
     if (!socket || !socket.connected) {
-        showToast(
-            'Socket desconectado; não é possível remover jogador agora.',
-            'error'
-        )
+        alert('Socket desconectado; não é possível remover jogador agora.')
         return
     }
 
     if (jogadorIdRemover === sessionData.mestreId) {
-        showToast('Você não pode remover o Mestre.', 'warning')
+        alert('Você não pode remover o Mestre.')
         return
     }
 
-    showConfirmModal({
-        title: 'Remover jogador?',
-        message: 'Tem certeza que deseja remover este jogador da sessão?',
-        variant: 'danger',
-        confirmText: 'Remover'
-    }).then(ok => {
-        if (!ok) return
+    if (confirm('Tem certeza que deseja remover este jogador da sessão?')) {
         socket.emit('remover_jogador', {
             sessionId: sessionData.sessionId,
             mestreId: sessionData.mestreId,
             jogadorIdRemover
         })
-    })
+    }
 }
 
 // =====================================================
@@ -257,7 +213,7 @@ function selecionarHeroi(heroiTipo) {
         heroisOcupados[heroiTipo] &&
         heroisOcupados[heroiTipo] !== sessionData.jogadorId
     ) {
-        showToast('Este herói já foi escolhido por outro jogador.', 'warning')
+        alert('Este herói já foi escolhido por outro jogador.')
         return
     }
 
@@ -323,7 +279,7 @@ function salvarNovoNome() {
     const novoNome = document.getElementById('inputNewName').value.trim()
 
     if (!novoNome) {
-        showToast('O nome não pode estar vazio.', 'warning')
+        alert('O nome não pode estar vazio.')
         return
     }
 
@@ -508,16 +464,35 @@ function conectarServidor() {
 
     socket.on('connect_error', err => {
         console.error('Erro de conexão:', err)
-        showToast(
-            'Erro ao conectar ao servidor. Verifique se o backend está rodando.',
-            'error',
-            { dedupeKey: 'connect_error', durationMs: 5000 }
+        alert(
+            'Erro ao conectar ao servidor. Verifique se o backend está rodando.'
         )
     })
 
     // Atualização de estado
     socket.on('estado_atualizado', estado => {
         console.log('Estado atualizado:', estado)
+        if (estado?.fase === 'jogo') {
+            if (sessionData.isMestre) {
+                window.location.href = `mestre.html?sessao=${sessionData.sessionId}`
+                return
+            }
+            const isPlayer = Array.isArray(estado?.listaJogadores)
+                ? estado.listaJogadores.some(j => j?.id === sessionData.jogadorId)
+                : false
+            if (isPlayer) {
+                if (sessionData.isSpectator) {
+                    sessionData.isSpectator = false
+                    salvarSessaoLocal()
+                }
+                window.location.href = `jogo.html?sessao=${sessionData.sessionId}`
+            } else {
+                sessionData.isSpectator = true
+                salvarSessaoLocal()
+                window.location.href = `jogo.html?sessao=${sessionData.sessionId}&spectator=1`
+            }
+            return
+        }
         if (estado.listaJogadores) {
             atualizarListaJogadores(estado.listaJogadores)
         }
@@ -537,24 +512,47 @@ function conectarServidor() {
         // Redirecionar para a página apropriada
         if (sessionData.isMestre) {
             window.location.href = `mestre.html?sessao=${sessionData.sessionId}`
-        } else {
+            return
+        }
+
+        const isPlayer = Array.isArray(data?.jogadores)
+            ? data.jogadores.some(j => j?.id === sessionData.jogadorId)
+            : true
+
+        if (isPlayer) {
+            if (sessionData.isSpectator) {
+                sessionData.isSpectator = false
+                salvarSessaoLocal()
+            }
             window.location.href = `jogo.html?sessao=${sessionData.sessionId}`
+        } else {
+            sessionData.isSpectator = true
+            salvarSessaoLocal()
+            window.location.href = `jogo.html?sessao=${sessionData.sessionId}&spectator=1`
         }
     })
 
     // Erro
     socket.on('acao_negada', data => {
         console.error('Ação negada:', data.motivo)
-        showToast(data?.motivo || 'Ação negada', 'warning')
+        alert(data.motivo)
+    })
+
+    socket.on('sessao_reiniciada', () => {
+        alert('Sessão reiniciada pelo Mestre. O jogo foi resetado.')
     })
 
     // Sessão não encontrada
+    socket.on('sessao_encerrada', () => {
+        alert('O Mestre saiu da sessao. Redirecionando para a tela inicial...')
+        localStorage.removeItem('algorion_session')
+        window.location.href = 'home.html'
+    })
+
     socket.on('sessao_nao_encontrada', () => {
-        redirectWithModal({
-            title: 'Sessão não encontrada',
-            message: 'Sessão não encontrada ou expirada.',
-            to: 'home.html'
-        })
+        alert('Sessão não encontrada ou expirada.')
+        localStorage.removeItem('algorion_session')
+        window.location.href = 'home.html'
     })
 
     // Nome alterado com sucesso
@@ -569,11 +567,9 @@ function conectarServidor() {
     // Jogador removido pelo mestre
     socket.on('voce_foi_removido', data => {
         console.warn('Você foi removido da sessão:', data)
-        redirectWithModal({
-            title: 'Removido da sessão',
-            message: 'Você foi removido da sessão pelo Mestre.',
-            to: 'home.html'
-        })
+        alert('Você foi removido da sessão pelo Mestre.')
+        localStorage.removeItem('algorion_session')
+        window.location.href = 'home.html'
     })
 }
 
@@ -589,6 +585,9 @@ function carregarSessaoLocal() {
     const data = localStorage.getItem('algorion_session')
     if (data) {
         sessionData = JSON.parse(data)
+        if (typeof sessionData.isSpectator !== 'boolean') {
+            sessionData.isSpectator = false
+        }
         return true
     }
     return false

@@ -86,6 +86,7 @@
         }
     }
 
+
     function ensureModal() {
         if (modalElements) return modalElements
 

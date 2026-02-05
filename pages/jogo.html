@@ -15,7 +15,8 @@
 
     <body>
         <noscript>
-            Para jogar Crônicas de Algorion, ative o JavaScript no seu navegador.
+            Para jogar Crônicas de Algorion, ative o JavaScript no seu
+            navegador.
         </noscript>
         <!-- Game Header -->
         <header class="game-header">
@@ -46,15 +47,9 @@
                 </button>
 
                 <div class="hint-cards-container">
-                    <div class="hint-card" draggable="true" data-card-id="1">
-                        <span class="card-label">Dica</span>
-                    </div>
-                    <div class="hint-card" draggable="true" data-card-id="2">
-                        <span class="card-label">Dica</span>
-                    </div>
-                    <div class="hint-card" draggable="true" data-card-id="3">
-                        <span class="card-label">Dica</span>
-                    </div>
+                    <div class="hint-card" aria-hidden="true"></div>
+                    <div class="hint-card" aria-hidden="true"></div>
+                    <div class="hint-card" aria-hidden="true"></div>
                 </div>
 
                 <button
@@ -71,30 +66,14 @@
             <div class="main-container">
                 <!-- Slots for Enigma Answer -->
                 <div class="slots-container">
-                    <div class="slot" data-slot-index="0">
-                        <span class="slot-label">1</span>
-                    </div>
-                    <div class="slot" data-slot-index="1">
-                        <span class="slot-label">2</span>
-                    </div>
-                    <div class="slot" data-slot-index="2">
-                        <span class="slot-label">3</span>
-                    </div>
-                    <div class="slot" data-slot-index="3">
-                        <span class="slot-label">4</span>
-                    </div>
-                    <div class="slot" data-slot-index="4">
-                        <span class="slot-label">5</span>
-                    </div>
-                    <div class="slot" data-slot-index="5">
-                        <span class="slot-label">6</span>
-                    </div>
-                    <div class="slot" data-slot-index="6">
-                        <span class="slot-label">7</span>
-                    </div>
-                    <div class="slot" data-slot-index="7">
-                        <span class="slot-label">8</span>
-                    </div>
+                    <div class="slot" data-slot-index="0"></div>
+                    <div class="slot" data-slot-index="1"></div>
+                    <div class="slot" data-slot-index="2"></div>
+                    <div class="slot" data-slot-index="3"></div>
+                    <div class="slot" data-slot-index="4"></div>
+                    <div class="slot" data-slot-index="5"></div>
+                    <div class="slot" data-slot-index="6"></div>
+                    <div class="slot" data-slot-index="7"></div>
                 </div>
 
                 <div class="final-riddle-actions">
@@ -322,11 +301,21 @@
             <div class="right-panel">
                 <!-- Event Card Area -->
                 <div class="event-card-area">
-                    <div class="event-card" id="eventCard">
-                        <img
-                            src="../assets/cards/events/front-event.png"
-                            alt="Carta de Evento"
-                        />
+                    <div class="event-card-flip" id="eventCard">
+                        <div class="event-card-inner">
+                            <div class="event-card-front">
+                                <img
+                                    src="../assets/cards/events/front-event.png"
+                                    alt="Carta de Evento"
+                                />
+                            </div>
+                            <div class="event-card-back">
+                                <img
+                                    src="../assets/cards/events/front-event.png"
+                                    alt="Verso do evento"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -408,6 +397,28 @@
                 </button>
                 <h3 id="actionTitle" class="action-title"></h3>
                 <div id="actionBody" class="action-body"></div>
+            </div>
+        </div>
+
+        <!-- Event Announcement Overlay (Street Fighter Style) -->
+        <div
+            id="eventAnnouncementOverlay"
+            class="event-announcement-overlay"
+            aria-live="assertive"
+        >
+            <div class="event-announcement-flash"></div>
+            <div class="event-announcement-sparks" id="eventSparks"></div>
+            <div class="event-announcement-content">
+                <div class="event-announcement-line top"></div>
+                <span class="event-announcement-label">Evento da Rodada</span>
+                <h2 class="event-announcement-name" id="eventAnnouncementName">
+                    —
+                </h2>
+                <div class="event-announcement-line bottom"></div>
+                <p
+                    class="event-announcement-description"
+                    id="eventAnnouncementDesc"
+                ></p>
             </div>
         </div>
 

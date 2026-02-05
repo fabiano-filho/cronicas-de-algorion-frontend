@@ -322,13 +322,36 @@ body::before {
 }
 
 .hint-card::after {
-    content: '✧';
+    content: '';
+    display: none;
+}
+
+.hint-card.is-placeholder {
+    cursor: default;
+}
+
+.hint-card.is-placeholder::after {
+    display: block;
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2rem;
-    color: rgba(139, 105, 20, 0.15);
+    inset: 0;
+    background: linear-gradient(
+        110deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.18) 32%,
+        rgba(255, 255, 255, 0) 64%
+    );
+    transform: translateX(-140%);
+    animation: hint-shimmer 1.15s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes hint-shimmer {
+    0% {
+        transform: translateX(-140%);
+    }
+    100% {
+        transform: translateX(140%);
+    }
 }
 
 .hint-card:hover {
@@ -471,6 +494,7 @@ body::before {
     left: 0;
     border-radius: 4px;
     margin: 0;
+    overflow: visible;
 }
 
 .slot .hint-card::before,
@@ -489,17 +513,17 @@ body::before {
 /* Remove Button in Slot */
 .remove-btn {
     position: absolute;
-    top: -10px;
-    right: -10px;
-    width: 20px;
-    height: 20px;
-    background: var(--color-gold-dark);
-    border: 1px solid var(--color-gold);
+    top: -8px;
+    right: -8px;
+    width: 18px;
+    height: 18px;
+    background: rgba(13, 10, 7, 0.62);
+    border: 1px solid rgba(240, 212, 138, 0.65);
     border-radius: 50%;
-    color: var(--color-parchment);
+    color: var(--color-gold-light);
     font-family: Arial, sans-serif;
-    font-size: 14px;
-    line-height: 1;
+    font-size: 0;
+    line-height: 0;
     cursor: pointer;
     display: flex;
     justify-content: center;
@@ -507,14 +531,44 @@ body::before {
     z-index: 20;
     transition: all 0.2s ease;
     padding: 0;
-    padding-bottom: 2px;
-    /* Visual adjustment for X centering */
+    box-shadow:
+        0 3px 10px rgba(0, 0, 0, 0.5),
+        0 0 10px rgba(212, 168, 87, 0.18);
+}
+
+.remove-btn::before,
+.remove-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 2px;
+    transform-origin: center;
+}
+
+.remove-btn::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.remove-btn::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.remove-btn:focus-visible {
+    outline: 2px solid rgba(240, 212, 138, 0.9);
+    outline-offset: 2px;
 }
 
 .remove-btn:hover {
-    background: var(--color-gold);
-    color: var(--color-bg-dark);
-    transform: scale(1.15);
+    background: rgba(26, 21, 16, 0.78);
+    border-color: rgba(240, 212, 138, 0.9);
+    transform: scale(1.06);
+    box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.62),
+        0 0 18px rgba(212, 168, 87, 0.35);
 }
 
 /* Z-Index Stacking to prevent buttons from being covered by next slot */
@@ -652,10 +706,57 @@ body::before {
     text-transform: uppercase;
 }
 
+.action-title:empty {
+    display: none;
+}
+
 .action-body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+}
+
+.action-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.action-card-preview {
+    flex: 0 0 168px;
+    max-width: 192px;
+    background: rgba(20, 16, 12, 0.6);
+    border: 1px solid rgba(212, 168, 87, 0.25);
+    border-radius: 10px;
+    padding: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.48rem;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.action-card-title {
+    font-family: var(--font-display);
+    color: var(--color-gold);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.action-card-preview img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+}
+
+.action-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
 }
 
 .action-btn {
@@ -690,6 +791,17 @@ body::before {
     color: rgba(245, 230, 200, 0.85);
 }
 
+@media (max-width: 600px) {
+    .action-layout {
+        flex-direction: column;
+    }
+
+    .action-card-preview {
+        max-width: 220px;
+        align-self: center;
+    }
+}
+
 .house-card:hover {
     transform: scale(1.05) translateY(-4px);
     z-index: 10;
@@ -715,6 +827,7 @@ body::before {
     backface-visibility: hidden;
     border-radius: 8px;
     overflow: hidden;
+    background: var(--color-parchment);
     box-shadow:
         0 4px 16px rgba(0, 0, 0, 0.5),
         0 2px 4px rgba(0, 0, 0, 0.3);
@@ -726,7 +839,10 @@ body::before {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    object-position: center;
     display: block;
+    background: transparent;
+    transform: none;
 }
 
 .house-card-back {
@@ -854,11 +970,11 @@ body::before {
     white-space: nowrap;
 }
 
-.event-card {
+.event-card-flip {
     width: clamp(100px, 12vmin, 150px);
     height: clamp(140px, 16.8vmin, 210px);
     border-radius: 10px;
-    overflow: hidden;
+    perspective: 1000px;
     box-shadow:
         0 8px 30px rgba(0, 0, 0, 0.5),
         0 0 40px rgba(139, 105, 20, 0.15);
@@ -867,14 +983,66 @@ body::before {
     cursor: pointer;
 }
 
-.event-card img {
+.event-card-inner {
+    position: relative;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    transition: transform 0.6s ease-in-out;
+    transform-style: preserve-3d;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.event-card-flip.flipped .event-card-inner {
+    /* Use opacity swap for reliability (avoid mirrored front card). */
+    transform: none;
+}
+
+.event-card-front,
+.event-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: opacity 0.18s linear;
+    box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(212, 168, 87, 0.15);
+    border: 2px solid rgba(212, 168, 87, 0.3);
+}
+
+.event-card-front {
+    transform: none;
+}
+
+.event-card-front img,
+.event-card-back img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
     display: block;
 }
 
-.event-card:hover {
+.event-card-back {
+    transform: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.event-card-flip.flipped .event-card-front {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.event-card-flip.flipped .event-card-back {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.event-card-flip:hover {
     transform: translateY(-5px);
     box-shadow:
         0 12px 40px rgba(0, 0, 0, 0.6),
@@ -934,22 +1102,40 @@ body::before {
     backface-visibility: hidden;
     border-radius: 10px;
     overflow: hidden;
+    transition: opacity 0.18s linear;
     box-shadow:
         0 8px 30px rgba(0, 0, 0, 0.5),
         0 0 40px rgba(212, 168, 87, 0.15);
     border: 2px solid rgba(212, 168, 87, 0.3);
 }
 
+.hero-card-front {
+    transform: rotateY(0deg);
+}
+
 .hero-card-front img,
 .hero-card-back img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
+    object-position: center;
     display: block;
 }
 
 .hero-card-back {
     transform: rotateY(180deg);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.hero-card-flip.flipped .hero-card-front {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.hero-card-flip.flipped .hero-card-back {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .hero-card-flip:hover .hero-card-front,
@@ -1301,9 +1487,10 @@ body::before {
 .zoomed-card .card-face img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
+    object-position: center;
     display: block;
-    background: var(--color-bg-medium);
+    background: transparent;
 }
 
 .zoomed-card .card-back {
@@ -1503,5 +1690,387 @@ body::before {
     .modal-close {
         top: 1.5vh;
         right: 3vw;
+    }
+}
+
+/* ============================================
+   EVENT ANNOUNCEMENT - Street Fighter Style
+   ============================================ */
+.event-announcement-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(13, 10, 7, 0.92) 0%,
+        rgba(0, 0, 0, 0.98) 100%
+    );
+    z-index: 3000;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity 0.3s ease,
+        visibility 0.3s ease;
+}
+
+.event-announcement-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: all;
+}
+
+/* Background effects */
+.event-announcement-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(212, 168, 87, 0.03) 50%,
+            transparent 100%
+        ),
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(212, 168, 87, 0.02) 2px,
+            rgba(212, 168, 87, 0.02) 4px
+        );
+    animation: none;
+}
+
+.event-announcement-overlay.active::before {
+    animation: event-scanlines 0.2s linear infinite;
+}
+
+@keyframes event-scanlines {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(4px);
+    }
+}
+
+/* Main text container */
+.event-announcement-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    z-index: 1;
+    opacity: 0;
+    transform: translate3d(55vw, 0, 0);
+    will-change: transform, opacity;
+}
+
+.event-announcement-overlay.active:not(.exit) .event-announcement-content {
+    animation: event-content-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.event-announcement-overlay.exit .event-announcement-content {
+    animation: event-content-out 0.35s ease-in forwards;
+}
+
+@keyframes event-content-in {
+    0% {
+        opacity: 0;
+        transform: translate3d(55vw, 0, 0);
+    }
+    60% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes event-content-out {
+    0% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+    100% {
+        opacity: 0;
+        transform: translate3d(-12vw, 0, 0);
+    }
+}
+
+/* "EVENTO DA RODADA" label */
+.event-announcement-label {
+    font-family: var(--font-display);
+    font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4em;
+    color: var(--color-gold);
+    opacity: 0;
+    transform: translate3d(0, -22px, 0);
+    will-change: transform, opacity;
+    text-shadow: 0 0 20px rgba(212, 168, 87, 0.6);
+}
+
+.event-announcement-overlay.active:not(.exit) .event-announcement-label {
+    animation: event-label-in 0.4s ease-out forwards;
+    animation-delay: 0.2s;
+}
+
+@keyframes event-label-in {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, -22px, 0);
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+/* Main event name - Street Fighter style */
+.event-announcement-name {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-parchment);
+    text-shadow:
+        0 0 10px rgba(212, 168, 87, 0.8),
+        0 0 30px rgba(212, 168, 87, 0.5),
+        0 0 60px rgba(212, 168, 87, 0.3),
+        4px 4px 0 var(--color-gold-dark),
+        -2px -2px 0 rgba(139, 58, 58, 0.5);
+    position: relative;
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.98);
+    will-change: transform, opacity;
+}
+
+.event-announcement-overlay.active:not(.exit) .event-announcement-name {
+    animation: event-name-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.35s;
+}
+
+@keyframes event-name-in {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, 18px, 0) scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+/* Decorative lines */
+.event-announcement-line {
+    width: min(80vw, 600px);
+    height: 3px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--color-gold),
+        var(--color-gold-light),
+        var(--color-gold),
+        transparent
+    );
+    box-shadow: 0 0 15px rgba(212, 168, 87, 0.6);
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: center;
+    will-change: transform, opacity;
+}
+
+.event-announcement-line.top {
+    margin-bottom: 0.5rem;
+}
+
+.event-announcement-line.bottom {
+    margin-top: 0.5rem;
+}
+
+.event-announcement-overlay.active:not(.exit) .event-announcement-line {
+    animation: event-line-expand 0.5s ease-out forwards;
+    animation-delay: 0.3s;
+}
+
+@keyframes event-line-expand {
+    0% {
+        opacity: 0;
+        transform: scaleX(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+}
+
+/* Event description */
+.event-announcement-description {
+    font-family: var(--font-body);
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+    font-style: italic;
+    color: var(--color-parchment-dark);
+    text-align: center;
+    max-width: 600px;
+    padding: 0 1rem;
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+    will-change: transform, opacity;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.event-announcement-overlay.active:not(.exit) .event-announcement-description {
+    animation: event-desc-in 0.5s ease-out forwards;
+    animation-delay: 0.9s;
+}
+
+@keyframes event-desc-in {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, 18px, 0);
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+/* Sparks/particles effect */
+.event-announcement-sparks {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.event-spark {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--color-gold-light);
+    border-radius: 50%;
+    box-shadow:
+        0 0 10px var(--color-gold),
+        0 0 20px var(--color-gold);
+    animation: event-spark-fly 1.5s ease-out forwards;
+}
+
+@keyframes event-spark-fly {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--spark-x, 100px), var(--spark-y, -100px))
+            scale(0);
+    }
+}
+
+/* Flash effect on entry */
+.event-announcement-flash {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        circle at center,
+        rgba(212, 168, 87, 0.4) 0%,
+        transparent 70%
+    );
+    opacity: 0;
+    pointer-events: none;
+}
+
+.event-announcement-overlay.active:not(.exit) .event-announcement-flash {
+    animation: event-flash 0.3s ease-out forwards;
+    animation-delay: 0.4s;
+}
+
+@keyframes event-flash {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2);
+    }
+}
+
+/* Exit animation */
+.event-announcement-overlay.exit .event-announcement-name {
+    animation: event-name-exit 0.4s ease-in forwards;
+}
+
+.event-announcement-overlay.exit .event-announcement-label,
+.event-announcement-overlay.exit .event-announcement-description {
+    animation: event-fade-exit 0.3s ease-in forwards;
+}
+
+.event-announcement-overlay.exit .event-announcement-line {
+    animation: event-line-collapse 0.3s ease-in forwards;
+}
+
+@keyframes event-name-exit {
+    0% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate3d(0, 0, 0) scale(1.5);
+    }
+}
+
+@keyframes event-fade-exit {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes event-line-collapse {
+    0% {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scaleX(0);
+    }
+}
+
+/* Blocked state - prevent interactions */
+body.event-announcement-blocking {
+    pointer-events: none;
+    user-select: none;
+}
+
+body.event-announcement-blocking .event-announcement-overlay {
+    pointer-events: all;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .event-announcement-name {
+        letter-spacing: 0.04em;
+    }
+
+    .event-announcement-label {
+        letter-spacing: 0.2em;
     }
 }

@@ -501,7 +501,7 @@ body.lobby-page.is-mestre .lobby-footer {
     row-gap: 0.6rem;
 }
 
-/* Faz com que os filhos do container do mestre virem itens diretos do grid do footer */
+/* Faz com que os filhos do container do mestre virem itens diretos do grid */
 body.lobby-page.is-mestre .mestre-controls {
     display: contents;
 }
