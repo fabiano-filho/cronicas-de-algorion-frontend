@@ -1110,11 +1110,16 @@ function conectarServidor() {
         pendingAnswerAfterExplore = null
         closeActionModal()
         c5WaitToastShown = false
-        localStorage.removeItem('algorion_session')
-        alert(
-            'O Mestre saiu da sessão. Você foi redirecionado para a tela inicial.'
-        )
-        window.location.href = 'home.html'
+        showAlertModal({
+            title: 'Sessão encerrada',
+            message:
+                'O Mestre saiu da sessão. Clique em Ok para voltar à tela inicial.',
+            confirmText: 'Ok',
+            allowClose: false
+        }).then(() => {
+            localStorage.removeItem('algorion_session')
+            window.location.href = 'home.html'
+        })
     })
 
     socket.on('sinal_dica_sutil', data => {
