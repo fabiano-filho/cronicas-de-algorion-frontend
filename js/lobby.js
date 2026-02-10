@@ -19,6 +19,7 @@ let sessionData = {
 let heroiSelecionado = null
 let jogadoresConectados = []
 let heroisOcupados = {}
+let heroCatalogByTipo = {}
 
 // Helpers de UI (AlgorionUI)
 const ui = window.AlgorionUI || null
@@ -112,6 +113,34 @@ function initUI() {
         document.getElementById('mestreControls').classList.add('hidden')
         document.getElementById('jogadorControls').classList.remove('hidden')
     }
+}
+
+function applyHeroCatalog(heroes) {
+    if (!Array.isArray(heroes) || heroes.length === 0) return
+
+    heroCatalogByTipo = {}
+    heroes.forEach(hero => {
+        const tipo = String(hero?.tipo || '').trim()
+        if (!tipo) return
+        heroCatalogByTipo[tipo] = hero
+    })
+
+    document.querySelectorAll('.hero-option').forEach(option => {
+        const heroTipo = option.dataset.hero
+        const heroMeta = heroCatalogByTipo[heroTipo]
+        if (!heroMeta) return
+
+        const nameEl = option.querySelector('.hero-name')
+        const abilityEl = option.querySelector('.hero-ability')
+
+        if (nameEl) {
+            nameEl.textContent = heroMeta.nome || heroTipo
+        }
+        if (abilityEl) {
+            abilityEl.textContent =
+                heroMeta.descricao || heroMeta.habilidade || ''
+        }
+    })
 }
 
 function initEventListeners() {
@@ -508,6 +537,7 @@ function conectarServidor() {
     // Atualização de estado
     socket.on('estado_atualizado', estado => {
         console.log('Estado atualizado:', estado)
+        applyHeroCatalog(estado?.catalogo?.heroes)
         if (estado?.fase === 'jogo') {
             if (sessionData.isMestre) {
                 window.location.href = `mestre.html?sessao=${sessionData.sessionId}`
@@ -539,6 +569,7 @@ function conectarServidor() {
     // Lobby atualizado
     socket.on('lobby_atualizado', data => {
         console.log('Lobby atualizado:', data)
+        applyHeroCatalog(data?.catalogo?.heroes)
         if (data.jogadores) {
             atualizarListaJogadores(data.jogadores)
         }

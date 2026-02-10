@@ -661,27 +661,57 @@ body::before {
 /* Marcadores de jogadores ("peões") */
 .house-occupants {
     position: absolute;
-    left: 6px;
-    bottom: 6px;
+    left: 4px;
+    right: 4px;
+    bottom: 4px;
     display: flex;
-    gap: 4px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: clamp(2px, 0.4vmin, 4px);
+    padding-top: 2px;
+    max-width: calc(100% - 8px);
     z-index: 12;
     pointer-events: none;
 }
 
 .pawn {
-    width: 12px;
-    height: 12px;
+    width: clamp(14px, 1.8vmin, 18px);
+    height: clamp(14px, 1.8vmin, 18px);
     border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.6);
+    border: 1.5px solid rgba(0, 0, 0, 0.7);
     box-shadow:
         0 1px 6px rgba(0, 0, 0, 0.5),
         0 0 10px rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(7px, 1vmin, 10px);
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    line-height: 1;
+    cursor: default;
+    pointer-events: auto;
+    position: relative;
 }
 
 .pawn.is-current {
     outline: 2px solid rgba(240, 212, 138, 0.85);
     outline-offset: 1px;
+}
+
+.pawn.is-me {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+}
+
+.pawn.is-current.is-me {
+    outline: 2px solid rgba(240, 212, 138, 0.95);
+    outline-offset: 1px;
+    box-shadow:
+        0 1px 6px rgba(0, 0, 0, 0.5),
+        0 0 14px rgba(240, 212, 138, 0.5);
 }
 
 /* Destaque sutil para a casa onde VOCÊ está */
@@ -894,6 +924,7 @@ body::before {
    ============================================ */
 .game-status {
     display: flex;
+    flex-wrap: wrap;
     gap: 2rem;
     justify-content: center;
     align-items: center;
@@ -910,6 +941,8 @@ body::before {
 
 .round-display,
 .turn-display {
+    display: inline-flex;
+    align-items: center;
     font-family: var(--font-body);
     font-size: 0.9rem;
     color: var(--color-parchment-dark);
@@ -929,10 +962,73 @@ body::before {
     display: none;
 }
 
-.round-display::after {
+.round-display::after,
+.turn-display::after {
     content: '│';
     margin-left: 2rem;
     color: rgba(212, 168, 87, 0.3);
+}
+
+/* Player positions inside status bar */
+.player-positions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    color: var(--color-parchment-dark);
+}
+
+.pos-entry {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.pos-entry.is-me {
+    color: var(--color-gold);
+    font-weight: 600;
+}
+
+.pos-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 8px;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+    .game-status {
+        padding: 0.5rem 1rem;
+        border-radius: 16px;
+        gap: 0;
+    }
+    .player-positions {
+        width: 100%;
+        justify-content: center;
+        margin-top: 0.4rem;
+        padding-top: 0.4rem;
+        border-top: 1px solid rgba(212, 168, 87, 0.15);
+        gap: 0.6rem;
+        font-size: 0.72rem;
+    }
+    .turn-display::after {
+        display: none;
+    }
+    .pos-dot {
+        width: 14px;
+        height: 14px;
+        font-size: 7px;
+    }
 }
 
 /* ============================================

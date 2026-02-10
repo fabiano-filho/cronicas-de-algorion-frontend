@@ -15,7 +15,8 @@
 
     <body>
         <noscript>
-            Para jogar Crônicas de Algorion, ative o JavaScript no seu navegador.
+            Para jogar Crônicas de Algorion, ative o JavaScript no seu
+            navegador.
         </noscript>
         <!-- Header -->
         <header class="mestre-header">
@@ -23,7 +24,10 @@
                 <span class="mestre-badge">👑 MESTRE</span>
                 <div class="session-info">
                     <span class="session-code" id="sessionCode">------</span>
-                    <span class="session-status" id="sessionStatus" aria-live="polite"
+                    <span
+                        class="session-status"
+                        id="sessionStatus"
+                        aria-live="polite"
                         >Conectando...</span
                     >
                 </div>
@@ -77,7 +81,63 @@
                     </div>
                     <div class="status-item">
                         <div class="status-label">Eventos Restantes</div>
-                        <div class="status-value" id="eventosRestantes">5</div>
+                        <div class="status-value" id="eventosRestantes">-</div>
+                    </div>
+                    <div class="status-item status-item-ph">
+                        <div class="status-label">Pontos de História</div>
+                        <div class="status-value ph-display" id="phGlobal">
+                            <span id="phValor">-</span>
+                            <button
+                                class="btn-edit-ph"
+                                id="btnEditPh"
+                                type="button"
+                                aria-label="Editar PH"
+                                title="Editar Pontos de História"
+                            >
+                                &#x270F;&#xFE0F;
+                            </button>
+                        </div>
+                        <div class="ph-edit-inline hidden" id="phEditInline">
+                            <button
+                                class="ph-btn"
+                                id="btnPhMinus"
+                                type="button"
+                                aria-label="Diminuir PH"
+                            >
+                                −
+                            </button>
+                            <input
+                                type="number"
+                                id="inputPhValue"
+                                class="ph-input"
+                                min="0"
+                                max="999"
+                                step="1"
+                                aria-label="Valor de PH"
+                            />
+                            <button
+                                class="ph-btn"
+                                id="btnPhPlus"
+                                type="button"
+                                aria-label="Aumentar PH"
+                            >
+                                +
+                            </button>
+                            <button
+                                class="ph-btn ph-btn-save"
+                                id="btnPhSave"
+                                type="button"
+                            >
+                                Salvar
+                            </button>
+                            <button
+                                class="ph-btn ph-btn-cancel"
+                                id="btnPhCancel"
+                                type="button"
+                            >
+                                ✕
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -347,17 +407,17 @@
                         style="display: none"
                     >
                         <button
-                            class="btn-control btn-primary" 
-                            id="btnFinalAcertou" 
+                            class="btn-control btn-primary"
+                            id="btnFinalAcertou"
                             type="button"
-                        > 
+                        >
                             ✅ Acertou
                         </button>
                         <button
-                            class="btn-control btn-danger" 
-                            id="btnFinalErrou" 
+                            class="btn-control btn-danger"
+                            id="btnFinalErrou"
                             type="button"
-                        > 
+                        >
                             ❌ Errou
                         </button>
                     </div>
@@ -368,10 +428,10 @@
                     <h3 class="panel-title">⚙️ Controles do Jogo</h3>
                     <div class="control-buttons">
                         <button
-                            class="btn-control btn-warning" 
-                            id="btnProximoTurno" 
+                            class="btn-control btn-warning"
+                            id="btnProximoTurno"
                             type="button"
-                        > 
+                        >
                             ⏭️ Próximo Turno
                         </button>
                     </div>
@@ -382,38 +442,54 @@
                     <h3 class="panel-title">⏱️ Cronômetro</h3>
                     <div class="timer-display" id="timerDisplay">01:00</div>
                     <div class="timer-presets">
-                        <button class="btn-timer-preset" data-time="30" type="button"> 
+                        <button
+                            class="btn-timer-preset"
+                            data-time="30"
+                            type="button"
+                        >
                             30s
                         </button>
-                        <button class="btn-timer-preset active" data-time="60" type="button"> 
+                        <button
+                            class="btn-timer-preset active"
+                            data-time="60"
+                            type="button"
+                        >
                             1min
                         </button>
-                        <button class="btn-timer-preset" data-time="120" type="button"> 
+                        <button
+                            class="btn-timer-preset"
+                            data-time="120"
+                            type="button"
+                        >
                             2min
                         </button>
-                        <button class="btn-timer-preset" data-time="180" type="button"> 
+                        <button
+                            class="btn-timer-preset"
+                            data-time="180"
+                            type="button"
+                        >
                             3min
                         </button>
                     </div>
                     <div class="timer-controls">
                         <button
-                            class="btn-control btn-primary" 
-                            id="btnIniciarTimer" 
+                            class="btn-control btn-primary"
+                            id="btnIniciarTimer"
                             type="button"
-                        > 
+                        >
                             ▶️ Iniciar
                         </button>
                         <button
-                            class="btn-control btn-warning" 
-                            id="btnPausarTimer" 
+                            class="btn-control btn-warning"
+                            id="btnPausarTimer"
                             type="button"
-                            disabled 
+                            disabled
                         >
                             ⏸️ Pausar
                         </button>
                         <button
-                            class="btn-control btn-secondary" 
-                            id="btnResetTimer" 
+                            class="btn-control btn-secondary"
+                            id="btnResetTimer"
                             type="button"
                         >
                             🔄 Reset
@@ -426,22 +502,22 @@
                     <h3 class="panel-title">⚡ Ações Rápidas</h3>
                     <div class="control-buttons">
                         <button
-                            class="btn-control btn-secondary" 
-                            id="btnVerCartas" 
+                            class="btn-control btn-secondary"
+                            id="btnVerCartas"
                             type="button"
                         >
                             🃏 Ver Todas as Dicas
                         </button>
                         <button
-                            class="btn-control btn-secondary" 
-                            id="btnVirarC5" 
+                            class="btn-control btn-secondary"
+                            id="btnVirarC5"
                             type="button"
                         >
                             🟩 Virar Carta C5
                         </button>
                         <button
-                            class="btn-control btn-danger" 
-                            id="btnReiniciarSessao" 
+                            class="btn-control btn-danger"
+                            id="btnReiniciarSessao"
                             type="button"
                         >
                             🔄 Reiniciar Sessão
@@ -455,21 +531,11 @@
                                 class="btn-control btn-secondary"
                                 style="flex: 1; min-width: 140px"
                             >
-                                <option value="C1">C1 (Biblioteca)</option>
-                                <option value="C2">C2 (Masmorra)</option>
-                                <option value="C3">C3 (Jardim)</option>
-                                <option value="C4">C4 (Mercado)</option>
-                                <option value="C5">
-                                    C5 (Bosque - sem pista)
-                                </option>
-                                <option value="C6">C6 (Arena)</option>
-                                <option value="C7">C7 (Deserto)</option>
-                                <option value="C8">C8 (Castelo)</option>
-                                <option value="C9">C9 (Montanha)</option>
+                                <option value="">Carregando casas...</option>
                             </select>
                             <button
-                                class="btn-control btn-primary" 
-                                id="btnExibirEnigma" 
+                                class="btn-control btn-primary"
+                                id="btnExibirEnigma"
                                 type="button"
                             >
                                 📨 Exibir
@@ -495,17 +561,7 @@
                                 class="btn-control btn-secondary"
                                 style="flex: 1; min-width: 140px"
                             >
-                                <option value="C1">C1 (Biblioteca)</option>
-                                <option value="C2">C2 (Masmorra)</option>
-                                <option value="C3">C3 (Jardim)</option>
-                                <option value="C4">C4 (Mercado)</option>
-                                <option value="C5">
-                                    C5 (Bosque - sem pista)
-                                </option>
-                                <option value="C6">C6 (Arena)</option>
-                                <option value="C7">C7 (Deserto)</option>
-                                <option value="C8">C8 (Castelo)</option>
-                                <option value="C9">C9 (Montanha)</option>
+                                <option value="">Carregando casas...</option>
                             </select>
                             <input
                                 id="debugTexto"
@@ -519,8 +575,8 @@
                                 "
                             />
                             <button
-                                class="btn-control btn-primary" 
-                                id="btnSimularEnigma" 
+                                class="btn-control btn-primary"
+                                id="btnSimularEnigma"
                                 type="button"
                             >
                                 📨 Enviar

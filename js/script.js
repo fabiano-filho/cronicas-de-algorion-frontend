@@ -25,6 +25,7 @@ let lastHeroTipo = null
 let lastAbilityUsed = null
 let lastEventoAtivoNome = null // Track last event to detect changes
 let isEventAnnouncementActive = false // Block actions during announcement
+let pendingMermaidAbilityTarget = false
 
 // House actions UI
 const actionModal = document.getElementById('actionModal')
@@ -33,10 +34,10 @@ const actionTitle = document.getElementById('actionTitle')
 const actionBody = document.getElementById('actionBody')
 
 let lastSession = null
-let pendingAnswerAfterExplore = null
 let c5WaitToastShown = false
 let activeHouseContext = null
 let lastC5Revealed = null
+let c5MandatoryResponseRequired = false
 
 const ui = window.AlgorionUI || null
 const showToast = (message, variant = 'info', options = {}) => {
@@ -106,17 +107,11 @@ const HERO_COLORS = {
     Bruxa: '#62769E'
 }
 
-// Mapa de adjacências do tabuleiro 3x3 (mesmo do backend)
-const ADJACENCIAS = {
-    C1: ['C2', 'C4'],
-    C2: ['C1', 'C3', 'C5'],
-    C3: ['C2', 'C6'],
-    C4: ['C1', 'C5', 'C7'],
-    C5: ['C2', 'C4', 'C6', 'C8'],
-    C6: ['C3', 'C5', 'C9'],
-    C7: ['C4', 'C8'],
-    C8: ['C5', 'C7', 'C9'],
-    C9: ['C6', 'C8']
+const HERO_INITIALS = {
+    Anao: 'A',
+    Humano: 'H',
+    Sereia: 'S',
+    Bruxa: 'B'
 }
 
 // Hero Card Inspection
@@ -360,6 +355,49 @@ function setAbilityStatus(text) {
     heroAbilityStatus.textContent = text || ''
 }
 
+function startMermaidAbilitySelection() {
+    if (pendingMermaidAbilityTarget) return
+    pendingMermaidAbilityTarget = true
+    setAbilityStatus(
+        'Sereia: clique em um desafio revelado para enviar o sinal de dica sutil.'
+    )
+    showToast(
+        'Selecione uma casa com enigma exibido para usar a habilidade da Sereia.',
+        'info',
+        { dedupeKey: 'sereia-ability' }
+    )
+}
+
+function clearMermaidAbilitySelection() {
+    pendingMermaidAbilityTarget = false
+}
+
+function requestMermaidHint(casaId, houseName) {
+    if (!pendingMermaidAbilityTarget) return
+    if (!sessionData?.sessionId || !sessionData?.jogadorId) {
+        showToast('Sessão inválida.', 'error')
+        clearMermaidAbilitySelection()
+        return
+    }
+    if (!socket || !socket.connected) {
+        showToast('Sem conexão com o servidor.', 'error')
+        clearMermaidAbilitySelection()
+        return
+    }
+
+    socket.emit('usar_habilidade_heroi', {
+        sessionId: sessionData.sessionId,
+        jogadorId: sessionData.jogadorId,
+        casaId
+    })
+    const label = houseName || casaId
+    setAbilityStatus(`Sereia: sinal de dica sutil solicitado para ${label}.`)
+    showToast(`Sereia: sinal de dica solicitado para ${label}.`, 'info', {
+        dedupeKey: 'sereia-ability'
+    })
+    clearMermaidAbilitySelection()
+}
+
 function closeActionModal() {
     if (!actionModal) return
     actionModal.classList.remove('active')
@@ -456,13 +494,36 @@ function isCarta5Revelada(session) {
     return !!getCardById(session, 'C5')?.revelada
 }
 
-const EVENT_BACK_BY_NAME = {
-    'Fluxo Laminar': '../assets/cards/events/back-event-fluxo-laminar.png',
-    'Eco do Contrato': '../assets/cards/events/back-event-eco-do-contrato.png',
-    'Terreno Quebradiço':
-        '../assets/cards/events/back-event-terreno-quebradico.png',
-    'Atalho Efêmero': '../assets/cards/events/back-event-atalho-efemero.png',
-    'Névoa da Dúvida': '../assets/cards/events/back-event-nevoa-da-duvida.png'
+function getSessionGameConfig(session) {
+    return session?.catalogo?.gameConfig || null
+}
+
+function getConfiguredActionCost(session, actionKey, fallback) {
+    const cost = Number(getSessionGameConfig(session)?.actionCosts?.[actionKey])
+    return Number.isFinite(cost) ? cost : fallback
+}
+
+function getGridColumns(session) {
+    const grid = String(getSessionGameConfig(session)?.gridSize || '3x3')
+    const match = grid.match(/^(\d+)x(\d+)$/i)
+    if (!match) return 3
+    const cols = Number(match[2])
+    return Number.isFinite(cols) && cols > 0 ? cols : 3
+}
+
+function areHousesAdjacent(session, origemId, destinoId) {
+    const from = getHouseNumberFromId(origemId)
+    const to = getHouseNumberFromId(destinoId)
+    if (!from || !to) return false
+
+    const cols = getGridColumns(session)
+    const fromRow = Math.floor((from - 1) / cols)
+    const fromCol = (from - 1) % cols
+    const toRow = Math.floor((to - 1) / cols)
+    const toCol = (to - 1) % cols
+    const rowDiff = Math.abs(fromRow - toRow)
+    const colDiff = Math.abs(fromCol - toCol)
+    return rowDiff + colDiff === 1
 }
 
 function renderEventCard(session) {
@@ -472,7 +533,7 @@ function renderEventCard(session) {
     const backImg = eventEl.querySelector('.event-card-back img')
     const frontSrc = '../assets/cards/events/front-event.png'
     const eventName = session?.eventoAtivo?.nome || ''
-    const backSrc = EVENT_BACK_BY_NAME[eventName] || frontSrc
+    const backSrc = session?.eventoAtivo?.backSource || frontSrc
     if (frontImg) {
         frontImg.src = resolveAssetUrl(frontSrc)
         frontImg.alt = 'Carta de Evento'
@@ -635,14 +696,72 @@ function renderPlayerPositions(session) {
             pawn.className = 'pawn'
             const tipo = p?.hero?.tipo
             pawn.style.background = HERO_COLORS[tipo] || 'rgba(245,230,200,0.8)'
+            pawn.textContent = HERO_INITIALS[tipo] || '?'
+            pawn.title = `${p.nome || 'Jogador'} (${tipo || 'Sem herói'})`
             if (current?.id && p.id === current.id) {
                 pawn.classList.add('is-current')
+            }
+            if (myPlayer?.id && p.id === myPlayer.id) {
+                pawn.classList.add('is-me')
             }
             container.appendChild(pawn)
         })
 
         el.appendChild(container)
     }
+
+    renderPlayerPositionsList(session)
+}
+
+function getHouseNameByNumber(n) {
+    const names = {
+        1: 'Biblioteca',
+        2: 'Masmorra',
+        3: 'Jardim',
+        4: 'Mercado',
+        5: 'Bosque',
+        6: 'Arena',
+        7: 'Deserto',
+        8: 'Castelo',
+        9: 'Montanha'
+    }
+    return names[n] || `Casa ${n}`
+}
+
+function renderPlayerPositionsList(session) {
+    const container = document.getElementById('playerPositions')
+    if (!container) return
+
+    const players = Array.isArray(session?.listaJogadores)
+        ? session.listaJogadores
+        : []
+    const myPlayer = getMyPlayer(session)
+
+    if (players.length === 0) {
+        container.innerHTML = ''
+        return
+    }
+
+    container.innerHTML = players
+        .map(p => {
+            const tipo = p?.hero?.tipo || ''
+            const color = HERO_COLORS[tipo] || '#b8a894'
+            const initial = HERO_INITIALS[tipo] || '?'
+            const posNum = getHouseNumberFromId(p.posicao)
+            const posName = posNum ? getHouseNameByNumber(posNum) : '-'
+            const isMe = myPlayer?.id && p.id === myPlayer.id
+            const label = isMe
+                ? `${p.nome || 'Jogador'} (você)`
+                : p.nome || 'Jogador'
+
+            return (
+                `<span class="pos-entry${isMe ? ' is-me' : ''}" title="${label} — ${tipo || 'Sem herói'}">` +
+                `<span class="pos-dot" style="background:${color}">${initial}</span>` +
+                `${posName}` +
+                `</span>`
+            )
+        })
+        .join('')
 }
 
 function renderBoardRevelations(session) {
@@ -682,29 +801,53 @@ function openHouseActionModalForHouse({ casaId, houseNum, houseName }) {
     const myPos = myPlayer?.posicao
     const myTurn = isMyTurn(lastSession)
     const revealed = !!getCardById(lastSession, casaId)?.revelada
+    const heroTipo = myPlayer?.hero?.tipo || null
+    const heroAbilityUsed =
+        !!lastSession?.habilidadesUsadasPorJogador?.[sessionData.jogadorId]
     const alreadyAnswered = !!lastSession?.registrosEnigmas?.[casaId]
     const c5Revealed = isCarta5Revelada(lastSession)
     const myPendingAnswer =
         lastSession?.riddlePendente?.jogadorId === sessionData.jogadorId
     const onThisHouse = myPos === casaId
-    const adjacent =
-        !!myPos &&
-        Array.isArray(ADJACENCIAS[myPos]) &&
-        ADJACENCIAS[myPos].includes(casaId)
+    const adjacent = !!myPos && areHousesAdjacent(lastSession, myPos, casaId)
 
     const blockedByC5 = !c5Revealed
+    const forceRespostaCarta5 = c5MandatoryResponseRequired && myTurn
     const hint = blockedByC5
         ? 'Aguardando o Mestre virar a carta C5 para iniciar o jogo.'
-        : !myTurn
-          ? 'Ações de casa só podem ser feitas na sua vez.'
-          : onThisHouse
-            ? revealed
-                ? 'Você está aqui. Carta já revelada.'
-                : 'Você está aqui. Carta ainda não revelada.'
-            : `Você está em ${myPos || '?'}.`
+        : forceRespostaCarta5
+          ? 'Carta C5 revelada: responda primeiro o desafio da casa C5 para liberar movimentos.'
+          : !myTurn
+            ? 'Ações de casa só podem ser feitas na sua vez.'
+            : onThisHouse
+              ? revealed
+                  ? 'Você está aqui. Carta já revelada.'
+                  : 'Você está aqui. Carta ainda não revelada.'
+              : `Você está em ${myPos || '?'}.`
 
     const actions = []
+    if (
+        pendingMermaidAbilityTarget &&
+        heroTipo === 'Sereia' &&
+        !heroAbilityUsed &&
+        revealed
+    ) {
+        actions.push({
+            label: 'Sereia: pedir dica sutil para este desafio',
+            disabled: !socket || !socket.connected,
+            onClick: () => {
+                requestMermaidHint(casaId, resolvedHouseName)
+                closeActionModal()
+            }
+        })
+    }
     const displayTitle = revealed ? `${resolvedHouseName} (${casaId})` : ''
+    const explorarCost = getConfiguredActionCost(lastSession, 'explorar', 1)
+    const explorarNovamenteCost = getConfiguredActionCost(
+        lastSession,
+        'explorarNovamente',
+        2
+    )
     const card = {
         src: `../assets/cards/houses/${houseNum}-${revealed ? 'back' : 'front'}.png`,
         alt: revealed ? displayTitle : 'Carta oculta',
@@ -722,10 +865,17 @@ function openHouseActionModalForHouse({ casaId, houseNum, houseName }) {
         return
     }
 
+    const moverCusto = getMoveCostForPlayer(lastSession, sessionData.jogadorId)
+    const saltoLivreCusto = getSaltoLivreCost(
+        lastSession,
+        sessionData.jogadorId
+    )
+
     if (!onThisHouse) {
         actions.push({
-            label: 'Mover para essa casa (1 PH)',
-            disabled: !myTurn || !adjacent || !c5Revealed,
+            label: `Mover para essa casa (${moverCusto} PH)`,
+            disabled:
+                !myTurn || !adjacent || !c5Revealed || forceRespostaCarta5,
             onClick: () => {
                 socket.emit('mover_peao', {
                     sessionId: sessionData.sessionId,
@@ -737,8 +887,8 @@ function openHouseActionModalForHouse({ casaId, houseNum, houseName }) {
         })
 
         actions.push({
-            label: 'Salto Livre para essa casa (2 PH)',
-            disabled: !myTurn || adjacent || !c5Revealed,
+            label: `Salto Livre para essa casa (${saltoLivreCusto} PH)`,
+            disabled: !myTurn || adjacent || !c5Revealed || forceRespostaCarta5,
             onClick: () => {
                 socket.emit('salto_livre', {
                     sessionId: sessionData.sessionId,
@@ -750,57 +900,64 @@ function openHouseActionModalForHouse({ casaId, houseNum, houseName }) {
         })
     } else {
         actions.push({
-            label: 'Explorar / Revelar carta (1 PH)',
+            label: `Revelar carta (${explorarCost} PH)`,
             disabled: !myTurn || revealed || blockedByC5,
             onClick: () => {
                 socket.emit('explorar_carta', {
                     sessionId: sessionData.sessionId,
-                    jogadorId: sessionData.jogadorId,
-                    custoExploracao: 1
+                    jogadorId: sessionData.jogadorId
                 })
-                pendingAnswerAfterExplore = null
                 closeActionModal()
             }
         })
 
+        if (revealed) {
+            const responderCusto = alreadyAnswered
+                ? explorarNovamenteCost
+                : getEnigmaCostForPlayer(
+                      lastSession,
+                      casaId,
+                      sessionData.jogadorId
+                  )
+            actions.push({
+                label: `Responder enigma (${responderCusto} PH)`,
+                disabled: !myTurn || myPendingAnswer,
+                onClick: () => {
+                    if (alreadyAnswered) {
+                        socket.emit('explorar_novamente', {
+                            sessionId: sessionData.sessionId,
+                            jogadorId: sessionData.jogadorId,
+                            // Resposta verbal na chamada (sem input)
+                            texto: ''
+                        })
+                    } else {
+                        socket.emit('responder_enigma', {
+                            sessionId: sessionData.sessionId,
+                            jogadorId: sessionData.jogadorId,
+                            casaId,
+                            // O jogo é em chamada: o jogador verbaliza a resposta ao Mestre.
+                            // Enviamos apenas o evento para liberar a validação no painel do Mestre.
+                            texto: ''
+                        })
+                    }
+                    closeActionModal()
+                }
+            })
+        }
+    }
+
+    // Botão para consultar o desafio (disponível para todos, sem gastar PH)
+    const enigmaJaExibido = !!lastSession?.enigmasExibidos?.[casaId]
+    if (revealed && enigmaJaExibido) {
         actions.push({
-            label: 'Revelar carta e responder',
-            disabled: !myTurn || revealed || myPendingAnswer || blockedByC5,
+            label: 'Ver desafio da casa',
+            disabled: false,
             onClick: () => {
-                pendingAnswerAfterExplore = casaId
-                socket.emit('explorar_carta', {
+                socket.emit('consultar_historia', {
                     sessionId: sessionData.sessionId,
                     jogadorId: sessionData.jogadorId,
-                    custoExploracao: 1
+                    casaId
                 })
-                closeActionModal()
-            }
-        })
-
-        const responderCusto = alreadyAnswered
-            ? 2
-            : getEnigmaCostForPlayer(lastSession, casaId, sessionData.jogadorId)
-        actions.push({
-            label: `Responder enigma (${responderCusto} PH)`,
-            disabled: !myTurn || !revealed || myPendingAnswer,
-            onClick: () => {
-                if (alreadyAnswered) {
-                    socket.emit('explorar_novamente', {
-                        sessionId: sessionData.sessionId,
-                        jogadorId: sessionData.jogadorId,
-                        // Resposta verbal na chamada (sem input)
-                        texto: ''
-                    })
-                } else {
-                    socket.emit('responder_enigma', {
-                        sessionId: sessionData.sessionId,
-                        jogadorId: sessionData.jogadorId,
-                        casaId,
-                        // O jogo é em chamada: o jogador verbaliza a resposta ao Mestre.
-                        // Enviamos apenas o evento para liberar a validação no painel do Mestre.
-                        texto: ''
-                    })
-                }
                 closeActionModal()
             }
         })
@@ -873,15 +1030,37 @@ function getEnigmaCostSemHeroi(session, casaId) {
     return Math.max(0, base + descontoEvento)
 }
 
+function isFirstMoveFreeForPlayer(session, jogadorId) {
+    if (!jogadorId) return false
+    const modifiers = session?.eventoAtivo?.modificadores || {}
+    return (
+        !!modifiers?.primeiroMovimentoGratisPorJogador &&
+        !session?.primeiroMovimentoGratisUsadoPorJogador?.[jogadorId]
+    )
+}
+
+function isHeroMoveFreeForPlayer(session, jogadorId) {
+    if (!jogadorId) return false
+    return !!session?.movimentoGratisHeroiPorJogador?.[jogadorId]
+}
+
 function getMoveCostForPlayer(session, jogadorId) {
     const modificadores = session?.eventoAtivo?.modificadores || {}
-    const gratuitoEvento =
-        !!modificadores?.primeiroMovimentoGratisPorJogador &&
-        !session?.primeiroMovimentoGratisUsadoPorJogador?.[jogadorId]
-    const gratuitoHeroi = !!session?.movimentoGratisHeroiPorJogador?.[jogadorId]
+    const gratuitoEvento = isFirstMoveFreeForPlayer(session, jogadorId)
+    const gratuitoHeroi = isHeroMoveFreeForPlayer(session, jogadorId)
     if (gratuitoEvento || gratuitoHeroi) return 0
     const delta = Number(modificadores?.moverDelta ?? 0) || 0
-    return 1 + delta
+    const base = getConfiguredActionCost(session, 'mover', 1)
+    return base + delta
+}
+
+function getSaltoLivreCost(session, jogadorId) {
+    const modificadores = session?.eventoAtivo?.modificadores || {}
+    if (isFirstMoveFreeForPlayer(session, jogadorId)) return 0
+    if (isHeroMoveFreeForPlayer(session, jogadorId)) return 0
+    const base = getConfiguredActionCost(session, 'saltoLivre', 2)
+    const custo = Number(modificadores?.saltoLivreCusto ?? base)
+    return Number.isFinite(custo) ? custo : base
 }
 
 function updateAbilityButtonFromSession(session) {
@@ -904,17 +1083,15 @@ function updateAbilityButtonFromSession(session) {
     )
     const heroTipo = myPlayer?.hero?.tipo || null
     setHeroCardTipo(heroTipo)
-    setAbilityStatus('')
+    const mermaidSelectionActive =
+        heroTipo === 'Sereia' && pendingMermaidAbilityTarget
+    if (!mermaidSelectionActive) {
+        setAbilityStatus('')
+    }
 
-    const jogadorAtual =
-        session?.listaJogadores?.[session?.jogadorAtualIndex] || null
-    const isMyTurn = !!jogadorAtual && jogadorAtual.id === sessionData.jogadorId
     const used = !!session?.habilidadesUsadasPorJogador?.[sessionData.jogadorId]
     let ruleBlockedReason = ''
-    if (heroTipo === 'Sereia') {
-        ruleBlockedReason =
-            'A habilidade da Sereia é automática ao responder enigma.'
-    } else if (heroTipo === 'Humano') {
+    if (heroTipo === 'Humano') {
         const custoMover = getMoveCostForPlayer(session, sessionData.jogadorId)
         if (custoMover <= 0) {
             ruleBlockedReason =
@@ -944,26 +1121,25 @@ function updateAbilityButtonFromSession(session) {
         !sessionData?.sessionId ||
         !sessionData?.jogadorId ||
         sessionData?.isMestre ||
-        !isMyTurn ||
         used ||
         ruleBlocked
 
     if (!heroTipo) {
         btnUsarHabilidade.textContent = 'Usar habilidade'
-    } else if (heroTipo === 'Sereia') {
-        btnUsarHabilidade.textContent = 'Habilidade automática (Sereia)'
     } else {
         btnUsarHabilidade.textContent = `Usar habilidade (${heroTipo})`
     }
 
-    if (!isMyTurn && !used) {
-        setAbilityStatus('Aguarde sua vez para usar.')
-    }
     if (used) {
         setAbilityStatus('Habilidade já usada na partida.')
     }
-    if (!used && isMyTurn && ruleBlocked) {
+    if (!used && ruleBlocked) {
         setAbilityStatus(ruleBlockedReason)
+    }
+    if (mermaidSelectionActive) {
+        setAbilityStatus(
+            'Sereia: clique em um desafio já revelado para enviar o sinal de dica sutil.'
+        )
     }
 }
 
@@ -1005,6 +1181,17 @@ function conectarServidor() {
 
     socket.on('estado_atualizado', session => {
         lastSession = session
+        if (c5MandatoryResponseRequired) {
+            const minhaRespostaPendente =
+                session?.riddlePendente?.jogadorId === sessionData.jogadorId
+            if (
+                minhaRespostaPendente ||
+                !isMyTurn(session) ||
+                !isCarta5Revelada(session)
+            ) {
+                c5MandatoryResponseRequired = false
+            }
+        }
         const phEl = document.getElementById('storyPointsValue')
         if (phEl && typeof session.ph === 'number') {
             phEl.textContent = String(session.ph)
@@ -1042,11 +1229,7 @@ function conectarServidor() {
             showEventAnnouncement(session.eventoAtivo)
         }
 
-        if (
-            c5Changed &&
-            actionModal?.classList.contains('active') &&
-            activeHouseContext
-        ) {
+        if (actionModal?.classList.contains('active') && activeHouseContext) {
             openHouseActionModalForHouse(activeHouseContext)
         }
         if (c5Revealed) {
@@ -1059,22 +1242,30 @@ function conectarServidor() {
             )
             c5WaitToastShown = true
         }
+    })
 
-        // Se o usuário escolheu "Revelar e responder", aguarda a carta ficar revelada
-        if (pendingAnswerAfterExplore) {
-            const revealed = !!getCardById(session, pendingAnswerAfterExplore)
-                ?.revelada
-            const myPlayer = getMyPlayer(session)
-            if (revealed && myPlayer?.posicao === pendingAnswerAfterExplore) {
-                const casaId = pendingAnswerAfterExplore
-                pendingAnswerAfterExplore = null
-                socket.emit('responder_enigma', {
-                    sessionId: sessionData.sessionId,
-                    jogadorId: sessionData.jogadorId,
-                    casaId,
-                    texto: ''
-                })
-            }
+    socket.on('desafio_carta5_obrigatorio', async data => {
+        if (data?.jogadorId !== sessionData.jogadorId) return
+        c5MandatoryResponseRequired = true
+        showToast(
+            'Carta C5 revelada: responda o desafio obrigatório da casa C5 para liberar movimentos.',
+            'warning',
+            { dedupeKey: 'c5_mandatory' }
+        )
+
+        await showAlertModal({
+            title: 'Desafio obrigatório em C5',
+            message:
+                'Você é o jogador da vez. Responda o desafio da casa C5 antes de mover ou passar o turno.',
+            confirmText: 'Responder agora'
+        })
+
+        if (lastSession && isMyTurn(lastSession)) {
+            openHouseActionModalForHouse({
+                casaId: 'C5',
+                houseNum: 5,
+                houseName: 'Bosque'
+            })
         }
     })
 
@@ -1084,18 +1275,18 @@ function conectarServidor() {
     })
 
     socket.on('sessao_reiniciada', () => {
-        pendingAnswerAfterExplore = null
         closeActionModal()
         c5WaitToastShown = false
+        c5MandatoryResponseRequired = false
         lastEventoAtivoNome = null // Reset event tracking
         showToast('Sessão reiniciada pelo Mestre. O jogo foi resetado.', 'info')
     })
 
     socket.on('sessao_sem_jogadores', async () => {
         // Partida em andamento, mas não restou nenhum jogador.
-        pendingAnswerAfterExplore = null
         closeActionModal()
         c5WaitToastShown = false
+        c5MandatoryResponseRequired = false
         await showAlertModal({
             title: 'Partida pausada',
             message:
@@ -1107,9 +1298,9 @@ function conectarServidor() {
 
     socket.on('sessao_encerrada', () => {
         // Sem mestre, a sessão não existe.
-        pendingAnswerAfterExplore = null
         closeActionModal()
         c5WaitToastShown = false
+        c5MandatoryResponseRequired = false
         showAlertModal({
             title: 'Sessão encerrada',
             message:
@@ -1124,7 +1315,11 @@ function conectarServidor() {
 
     socket.on('sinal_dica_sutil', data => {
         if (data?.jogadorId !== sessionData.jogadorId) return
-        setAbilityStatus('Sereia: sinal de dica sutil enviado ao Mestre.')
+        clearMermaidAbilitySelection()
+        const casaLabel = data?.casaId ? ` para ${data.casaId}` : ''
+        setAbilityStatus(
+            `Sereia: sinal de dica sutil enviado ao Mestre${casaLabel}.`
+        )
     })
 
     socket.on('enigma_exibido', async data => {
@@ -1132,6 +1327,17 @@ function conectarServidor() {
         const casaId = data?.casaId ? ` ${data.casaId}` : ''
         await showAlertModal({
             title: `Desafio${casaId}`,
+            message: data.texto,
+            pre: true,
+            confirmText: 'Fechar'
+        })
+    })
+
+    socket.on('historia_consultada', async data => {
+        if (!data?.texto) return
+        const casaId = data?.casaId ? ` ${data.casaId}` : ''
+        await showAlertModal({
+            title: `História${casaId}`,
             message: data.texto,
             pre: true,
             confirmText: 'Fechar'
@@ -1309,10 +1515,23 @@ if (btnUsarHabilidade) {
         }
         const myPlayer = lastSession ? getMyPlayer(lastSession) : null
         const heroTipo = myPlayer?.hero?.tipo || null
+        const abilityUsed =
+            !!lastSession?.habilidadesUsadasPorJogador?.[sessionData.jogadorId]
         if (heroTipo === 'Sereia') {
-            setAbilityStatus(
-                'A habilidade da Sereia é automática ao responder enigma.'
-            )
+            if (abilityUsed) {
+                showToast(
+                    'Você já usou a habilidade da Sereia nesta partida.',
+                    'info'
+                )
+                return
+            }
+            if (pendingMermaidAbilityTarget) {
+                clearMermaidAbilitySelection()
+                setAbilityStatus('')
+                showToast('Seleção da habilidade da Sereia cancelada.', 'info')
+                return
+            }
+            startMermaidAbilitySelection()
             return
         }
         if (heroTipo === 'Humano' && lastSession) {

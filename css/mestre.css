@@ -253,14 +253,17 @@ body {
     border-radius: 12px;
     padding: 0.9rem 1.25rem;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-around;
     align-items: center;
+    gap: 0.5rem 1rem;
     border: 2px solid #b8a894;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .status-item {
     text-align: center;
+    min-width: 0;
 }
 
 .status-label {
@@ -279,6 +282,122 @@ body {
 
 .status-value.current-player {
     color: #5a7a50;
+}
+
+/* PH Display & Edit */
+.status-item-ph {
+    position: relative;
+}
+
+.ph-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+#phValor {
+    transition: color 0.3s ease;
+}
+
+#phValor.low {
+    color: #c97a20;
+}
+
+#phValor.critical {
+    color: #c0392b;
+    animation: phPulse 1s ease-in-out infinite;
+}
+
+@keyframes phPulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.btn-edit-ph {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.2rem;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    line-height: 1;
+}
+
+.btn-edit-ph:hover {
+    opacity: 1;
+}
+
+.ph-edit-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+}
+
+.ph-edit-inline.hidden {
+    display: none;
+}
+
+.ph-input {
+    width: 3.5rem;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: bold;
+    border: 2px solid #b8a894;
+    border-radius: 6px;
+    background: #fff;
+    color: #4a4537;
+    padding: 0.15rem 0.3rem;
+    -moz-appearance: textfield;
+}
+
+.ph-input::-webkit-inner-spin-button,
+.ph-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.ph-btn {
+    background: #d7d0c6;
+    border: 1px solid #b8a894;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #4a4537;
+    padding: 0.15rem 0.45rem;
+    line-height: 1.2;
+    transition: background 0.15s;
+}
+
+.ph-btn:hover {
+    background: #c5b8a5;
+}
+
+.ph-btn-save {
+    background: #5a7a50;
+    color: #fff;
+    border-color: #4a6a40;
+}
+
+.ph-btn-save:hover {
+    background: #4a6a40;
+}
+
+.ph-btn-cancel {
+    background: #c0392b;
+    color: #fff;
+    border-color: #a93226;
+}
+
+.ph-btn-cancel:hover {
+    background: #a93226;
 }
 
 /* Board Preview */
@@ -377,17 +496,19 @@ body {
 
 .mestre-board-grid .house-occupants {
     position: absolute;
-    left: 6px;
-    bottom: 6px;
+    left: 4px;
+    right: 4px;
+    bottom: 4px;
     display: flex;
-    gap: 4px;
+    justify-content: center;
+    gap: clamp(2px, 0.4vmin, 4px);
     z-index: 12;
     pointer-events: none;
 }
 
 .mestre-board-grid .pawn {
-    width: 12px;
-    height: 12px;
+    width: clamp(9px, 1.2vmin, 12px);
+    height: clamp(9px, 1.2vmin, 12px);
     border-radius: 50%;
     border: 1px solid rgba(0, 0, 0, 0.6);
     box-shadow:

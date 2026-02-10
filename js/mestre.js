@@ -51,7 +51,8 @@ let gameState = {
     eventoAtual: null,
     charadaAtual: null,
     desafioFinalAtual: null,
-    eventosRestantes: 5
+    eventosRestantes: null,
+    ph: null
 }
 
 let lastSession = null
@@ -100,6 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initUI()
     conectarServidor()
     initEventListeners()
+    setupPhEdit()
 })
 
 // =====================================================
@@ -114,6 +116,14 @@ function carregarSessaoLocal() {
             if (typeof sessionData.isSpectator !== 'boolean') {
                 sessionData.isSpectator = false
             }
+            if (
+                sessionData.isMestre &&
+                !sessionData.mestreId &&
+                sessionData.jogadorId
+            ) {
+                sessionData.mestreId = sessionData.jogadorId
+                salvarSessaoLocal()
+            }
             return sessionData.sessionId !== null
         }
     } catch (e) {
@@ -124,6 +134,10 @@ function carregarSessaoLocal() {
 
 function salvarSessaoLocal() {
     localStorage.setItem('algorion_session', JSON.stringify(sessionData))
+}
+
+function getEffectiveMestreId() {
+    return sessionData.mestreId || sessionData.jogadorId || null
 }
 
 // =====================================================
@@ -365,6 +379,18 @@ function conectarServidor() {
         )
     })
 
+    socket.on('desafio_carta5_obrigatorio', data => {
+        const jogadorNome = data?.jogadorNome || 'jogador da vez'
+        addLog(
+            `Carta C5 revelada: aguardando resposta obrigatória de ${jogadorNome}.`,
+            'warning'
+        )
+        showToast(
+            `Aguardando ${jogadorNome} responder o desafio da C5.`,
+            'warning'
+        )
+    })
+
     socket.on('charada_iniciada', data => {
         console.log('Charada iniciada:', data)
         gameState.charadaAtual = data
@@ -448,6 +474,7 @@ function conectarServidor() {
 function atualizarEstadoJogo(estado) {
     // backend envia o GameSession completo
     lastSession = estado
+    applyHouseCatalog(estado)
 
     if (typeof estado?.rodadaAtual === 'number') {
         gameState.rodada = estado.rodadaAtual
@@ -473,6 +500,10 @@ function atualizarEstadoJogo(estado) {
         gameState.eventosRestantes = estado.deckEventos.length
     }
 
+    if (typeof estado?.ph === 'number') {
+        gameState.ph = estado.ph
+    }
+
     if (typeof estado?.cronometro === 'number') {
         timerState.seconds = estado.cronometro
         timerState.totalSeconds = Math.max(
@@ -493,6 +524,9 @@ function atualizarUI() {
         gameState.jogadorDaVez?.nome || '-'
     document.getElementById('eventosRestantes').textContent =
         gameState.eventosRestantes ?? lastSession?.deckEventos?.length ?? '-'
+
+    // Update PH global
+    atualizarPhDisplay()
 
     // Update players list
     atualizarListaJogadores()
@@ -520,6 +554,37 @@ function getHouseNumberFromId(casaId) {
 function getCardById(session, casaId) {
     const flat = session?.estadoTabuleiro?.flat?.() || []
     return flat.find(c => c && c.id === casaId) || null
+}
+
+function applyHouseCatalog(session) {
+    const houses = Array.isArray(session?.catalogo?.houses)
+        ? [...session.catalogo.houses]
+        : []
+    if (!houses.length) return
+
+    houses.sort((a, b) => Number(a?.ordem || 0) - Number(b?.ordem || 0))
+
+    const selectIds = ['mestreCasaSelect', 'debugCasaSelect']
+    selectIds.forEach(selectId => {
+        const select = document.getElementById(selectId)
+        if (!select) return
+
+        const previousValue = select.value
+        select.innerHTML = ''
+
+        houses.forEach(house => {
+            const option = document.createElement('option')
+            option.value = house.id
+            const suffix = house.hasTip ? '' : ' - sem pista'
+            option.textContent = `${house.id} (${house.nome}${suffix})`
+            select.appendChild(option)
+        })
+
+        const hasPrevious = houses.some(house => house.id === previousValue)
+        if (hasPrevious) {
+            select.value = previousValue
+        }
+    })
 }
 
 function syncMestreCasaSelect(casaId) {
@@ -631,6 +696,78 @@ function renderBoardPlayerPositions(session) {
     }
 }
 
+// =====================================================
+// PH GLOBAL - EXIBIÇÃO E EDIÇÃO
+// =====================================================
+
+function atualizarPhDisplay() {
+    const phValorEl = document.getElementById('phValor')
+    if (!phValorEl) return
+    const ph = gameState.ph
+    phValorEl.textContent = typeof ph === 'number' ? ph : '-'
+    phValorEl.classList.toggle('low', typeof ph === 'number' && ph <= 3)
+    phValorEl.classList.toggle('critical', typeof ph === 'number' && ph <= 0)
+}
+
+function setupPhEdit() {
+    const btnEdit = document.getElementById('btnEditPh')
+    const editPanel = document.getElementById('phEditInline')
+    const phDisplay = document.getElementById('phGlobal')
+    const inputPh = document.getElementById('inputPhValue')
+    const btnMinus = document.getElementById('btnPhMinus')
+    const btnPlus = document.getElementById('btnPhPlus')
+    const btnSave = document.getElementById('btnPhSave')
+    const btnCancel = document.getElementById('btnPhCancel')
+    if (!btnEdit || !editPanel || !inputPh) return
+
+    function openEdit() {
+        inputPh.value = gameState.ph ?? 0
+        phDisplay.classList.add('hidden')
+        editPanel.classList.remove('hidden')
+        inputPh.focus()
+        inputPh.select()
+    }
+
+    function closeEdit() {
+        editPanel.classList.add('hidden')
+        phDisplay.classList.remove('hidden')
+    }
+
+    function salvarPh() {
+        const novo = parseInt(inputPh.value, 10)
+        if (isNaN(novo) || novo < 0) {
+            showToast('Valor de PH inválido', 'error')
+            return
+        }
+        if (!socket || !socket.connected) {
+            showToast('Sem conexão com o servidor', 'error')
+            return
+        }
+        socket.emit('editar_ph', {
+            sessionId: sessionData.sessionId,
+            mestreId: getEffectiveMestreId(),
+            novoPh: novo
+        })
+        closeEdit()
+    }
+
+    btnEdit.addEventListener('click', openEdit)
+    btnCancel.addEventListener('click', closeEdit)
+    btnSave.addEventListener('click', salvarPh)
+    btnMinus.addEventListener('click', () => {
+        const cur = parseInt(inputPh.value, 10) || 0
+        inputPh.value = Math.max(0, cur - 1)
+    })
+    btnPlus.addEventListener('click', () => {
+        const cur = parseInt(inputPh.value, 10) || 0
+        inputPh.value = cur + 1
+    })
+    inputPh.addEventListener('keydown', e => {
+        if (e.key === 'Enter') salvarPh()
+        if (e.key === 'Escape') closeEdit()
+    })
+}
+
 function atualizarListaJogadores() {
     const container = document.getElementById('playersList')
     if (!container) return
@@ -654,7 +791,7 @@ function atualizarListaJogadores() {
                 typeof jogador.ph === 'number' && jogador.ph <= 1 ? 'low' : ''
             const heroTipo = jogador.hero?.tipo || jogador.heroi || 'Sem herói'
             const posicao = jogador.posicao ?? '-'
-            const podeRemover = jogador.id !== sessionData.mestreId
+            const podeRemover = jogador.id !== getEffectiveMestreId()
 
             return `
             <div class="player-card ${isCurrentTurn ? 'active-turn' : ''}">
@@ -707,7 +844,7 @@ function atualizarListaJogadores() {
             if (ok) {
                 socket.emit('remover_jogador', {
                     sessionId: sessionData.sessionId,
-                    mestreId: sessionData.mestreId,
+                    mestreId: getEffectiveMestreId(),
                     jogadorIdRemover: playerId
                 })
             }
@@ -833,7 +970,7 @@ function validarResposta(acertou) {
 
     socket.emit('confirm_answer', {
         sessionId: sessionData.sessionId,
-        mestreId: sessionData.mestreId,
+        mestreId: getEffectiveMestreId(),
         jogadorId,
         quality: acertou ? 'otima' : 'ruim'
     })
@@ -854,7 +991,7 @@ function validarDesafioFinal(acertou) {
 
     socket.emit('confirmar_desafio_final', {
         sessionId: sessionData.sessionId,
-        mestreId: sessionData.mestreId,
+        mestreId: getEffectiveMestreId(),
         jogadorId,
         correta: !!acertou
     })
@@ -867,7 +1004,7 @@ function virarCarta5() {
     }
     socket.emit('virar_carta5', {
         sessionId: sessionData.sessionId,
-        mestreId: sessionData.mestreId
+        mestreId: getEffectiveMestreId()
     })
     addLog('Carta C5 revelada pelo Mestre.', 'info')
 }
@@ -889,7 +1026,7 @@ async function reiniciarSessao() {
     if (!ok) return
     socket.emit('reiniciar_sessao', {
         sessionId: sessionData.sessionId,
-        mestreId: sessionData.mestreId
+        mestreId: getEffectiveMestreId()
     })
     addLog('Sessão reiniciada pelo Mestre.', 'warning')
 }
@@ -907,7 +1044,7 @@ function exibirEnigma() {
 
     socket.emit('mestre_exibir_enigma', {
         sessionId: sessionData.sessionId,
-        mestreId: sessionData.mestreId,
+        mestreId: getEffectiveMestreId(),
         casaId
     })
     addLog(`Desafio exibido para ${casaId}.`, 'info')
@@ -921,7 +1058,11 @@ async function sairSessao() {
         confirmText: 'Sair'
     })
     if (ok) {
-        if (socket?.connected && sessionData?.sessionId && sessionData?.jogadorId) {
+        if (
+            socket?.connected &&
+            sessionData?.sessionId &&
+            sessionData?.jogadorId
+        ) {
             socket.emit('sair_sessao', {
                 sessionId: sessionData.sessionId,
                 jogadorId: sessionData.jogadorId
@@ -1107,7 +1248,7 @@ function iniciarTimer() {
     if (socket?.connected) {
         socket.emit('abrir_cronometro', {
             sessionId: sessionData.sessionId,
-            mestreId: sessionData.mestreId,
+            mestreId: getEffectiveMestreId(),
             tempo: timerState.seconds
         })
     }
@@ -1137,7 +1278,7 @@ function pararTimer() {
     if (socket?.connected) {
         socket.emit('abrir_cronometro', {
             sessionId: sessionData.sessionId,
-            mestreId: sessionData.mestreId,
+            mestreId: getEffectiveMestreId(),
             tempo: timerState.seconds
         })
     }
@@ -1162,7 +1303,7 @@ function resetTimer() {
     if (socket?.connected) {
         socket.emit('abrir_cronometro', {
             sessionId: sessionData.sessionId,
-            mestreId: sessionData.mestreId,
+            mestreId: getEffectiveMestreId(),
             tempo: timerState.seconds
         })
     }
@@ -1182,7 +1323,7 @@ function setTimerPreset(seconds) {
     if (socket?.connected) {
         socket.emit('abrir_cronometro', {
             sessionId: sessionData.sessionId,
-            mestreId: sessionData.mestreId,
+            mestreId: getEffectiveMestreId(),
             tempo: timerState.seconds
         })
     }
