@@ -21,12 +21,14 @@
         <!-- Game Header -->
         <header class="game-header">
             <h1 class="game-title">Crônicas de Algorion</h1>
-            <div class="story-points">
-                <span class="story-points-icon" aria-hidden="true">⚡</span>
-                <span class="story-points-value" id="storyPointsValue">40</span>
-                <span class="story-points-label">PH</span>
-            </div>
             <div class="header-actions">
+                <div class="story-points">
+                    <span class="story-points-icon" aria-hidden="true">⚡</span>
+                    <span class="story-points-value" id="storyPointsValue"
+                        >40</span
+                    >
+                    <span class="story-points-label">PH</span>
+                </div>
                 <button id="btnSairSessao" class="btn-leave" type="button">
                     🚪 Sair
                 </button>
@@ -35,58 +37,49 @@
 
         <!-- Main Game Area -->
         <main class="game-container" id="main">
-            <!-- Left Column: Hint Cards -->
+            <!-- Left Column: Hint Grid -->
             <div class="hint-column">
-                <button
-                    class="nav-button nav-up"
-                    id="scrollUp"
-                    type="button"
-                    aria-label="Rolar para cima"
-                >
-                    <span aria-hidden="true">▲</span>
-                </button>
-
-                <div class="hint-cards-container">
-                    <div class="hint-card" aria-hidden="true"></div>
-                    <div class="hint-card" aria-hidden="true"></div>
-                    <div class="hint-card" aria-hidden="true"></div>
+                <div class="hint-column-header">
+                    <span class="hint-column-title">Pistas</span>
+                    <button
+                        id="btnAbrirEnigmaOverlay"
+                        class="riddle-overlay-trigger"
+                        type="button"
+                        aria-haspopup="dialog"
+                        aria-controls="riddleOverlay"
+                        aria-label="Ver enigma"
+                    >
+                        <span
+                            class="riddle-overlay-trigger-icon"
+                            aria-hidden="true"
+                        ></span>
+                        <span class="riddle-overlay-trigger-label"
+                            >Ver enigma</span
+                        >
+                        <span
+                            class="riddle-overlay-trigger-badge"
+                            aria-hidden="true"
+                        ></span>
+                    </button>
                 </div>
 
-                <button
-                    class="nav-button nav-down"
-                    id="scrollDown"
-                    type="button"
-                    aria-label="Rolar para baixo"
-                >
-                    <span aria-hidden="true">▼</span>
-                </button>
+                <div class="hint-grid-row">
+                    <div class="hint-grid" id="hintGrid">
+                        <div class="hint-slot" data-slot-index="0"></div>
+                        <div class="hint-slot" data-slot-index="1"></div>
+                        <div class="hint-slot" data-slot-index="2"></div>
+                        <div class="hint-slot" data-slot-index="3"></div>
+                        <div class="hint-slot" data-slot-index="4"></div>
+                        <div class="hint-slot" data-slot-index="5"></div>
+                        <div class="hint-slot" data-slot-index="6"></div>
+                        <div class="hint-slot" data-slot-index="7"></div>
+                    </div>
+
+                </div>
             </div>
 
             <!-- Central Board -->
             <div class="main-container">
-                <!-- Slots for Enigma Answer -->
-                <div class="slots-container">
-                    <div class="slot" data-slot-index="0"></div>
-                    <div class="slot" data-slot-index="1"></div>
-                    <div class="slot" data-slot-index="2"></div>
-                    <div class="slot" data-slot-index="3"></div>
-                    <div class="slot" data-slot-index="4"></div>
-                    <div class="slot" data-slot-index="5"></div>
-                    <div class="slot" data-slot-index="6"></div>
-                    <div class="slot" data-slot-index="7"></div>
-                </div>
-
-                <div class="final-riddle-actions">
-                    <button
-                        id="btnResponderEnigmaFinal"
-                        class="final-riddle-btn"
-                        type="button"
-                        disabled
-                    >
-                        Responder enigma final
-                    </button>
-                </div>
-
                 <!-- 3x3 Board Grid -->
                 <div class="board-grid">
                     <!-- House Card 1 - C1 Biblioteca -->
@@ -398,6 +391,52 @@
                 </button>
                 <h3 id="actionTitle" class="action-title"></h3>
                 <div id="actionBody" class="action-body"></div>
+            </div>
+        </div>
+
+        <div
+            id="riddleOverlay"
+            class="riddle-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="riddleOverlayTitle"
+        >
+            <div class="riddle-overlay-panel">
+                <button
+                    id="btnFecharEnigmaOverlay"
+                    class="riddle-overlay-close"
+                    type="button"
+                    aria-label="Fechar"
+                >
+                    &times;
+                </button>
+                <p class="riddle-overlay-kicker">Fragmento do enigma final</p>
+                <h2 id="riddleOverlayTitle" class="riddle-overlay-title">
+                    Escrita antiga
+                </h2>
+                <div
+                    id="riddleOverlayText"
+                    class="riddle-overlay-text"
+                    aria-live="polite"
+                ></div>
+                <div class="riddle-overlay-actions">
+                    <button
+                        id="btnPedirDicaEnigmaFinal"
+                        class="final-riddle-btn final-riddle-btn-secondary"
+                        type="button"
+                        disabled
+                    >
+                        Pedir dica ao Mestre
+                    </button>
+                    <button
+                        id="btnResponderEnigmaFinal"
+                        class="final-riddle-btn"
+                        type="button"
+                        disabled
+                    >
+                        Responder enigma final
+                    </button>
+                </div>
             </div>
         </div>
 

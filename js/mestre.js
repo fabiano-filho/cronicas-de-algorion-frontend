@@ -373,10 +373,9 @@ function conectarServidor() {
             data.jogadorAtualCasaId || gameState.jogadorDaVez?.posicao
         )
         atualizarUI()
-        addLog(
-            `Turno - Vez de ${data.jogadorAtualNome || gameState.jogadorDaVez?.nome || 'Ninguém'}`,
-            'info'
-        )
+        const nomeVez = data.jogadorAtualNome || gameState.jogadorDaVez?.nome || 'Ninguém'
+        addLog(`Turno - Vez de ${nomeVez}`, 'info')
+        showToast(`Vez de ${nomeVez}`, 'info')
     })
 
     socket.on('desafio_carta5_obrigatorio', data => {
@@ -396,10 +395,20 @@ function conectarServidor() {
         gameState.charadaAtual = data
         atualizarCharadaUI()
         updateExibirEnigmaState()
-        addLog(
-            `Enigma submetido (${data.casaId}) por ${data.jogador?.nome || 'jogador'}`,
-            'info'
-        )
+        const jogadorEnigma = data.jogador?.nome || 'jogador'
+        addLog(`Enigma submetido (${data.casaId}) por ${jogadorEnigma}`, 'info')
+        showToast(`${jogadorEnigma} submeteu resposta (${data.casaId}). Valide com ✅/❌`, 'warning')
+    })
+
+    socket.on('enigma_exibido', data => {
+        const casaLabel = data?.casaId || '?'
+        if (data?.autoExibido) {
+            addLog(`Desafio de ${casaLabel} exibido automaticamente para os jogadores.`, 'info')
+            showToast(`Desafio ${casaLabel} exibido automaticamente aos jogadores.`, 'info')
+        } else {
+            addLog(`Desafio de ${casaLabel} exibido para os jogadores.`, 'info')
+            showToast(`Desafio ${casaLabel} exibido para os jogadores.`, 'info')
+        }
     })
 
     socket.on('resposta_validada', data => {
@@ -410,8 +419,10 @@ function conectarServidor() {
 
         if (data.acertou) {
             addLog(`${data.jogador?.nome} acertou a charada!`, 'success')
+            showToast(`${data.jogador?.nome} acertou a charada!`, 'success')
         } else {
             addLog(`${data.jogador?.nome} errou a charada`, 'warning')
+            showToast(`${data.jogador?.nome} errou a charada`, 'warning')
         }
     })
 
@@ -419,10 +430,9 @@ function conectarServidor() {
     socket.on('desafio_final_iniciado', data => {
         gameState.desafioFinalAtual = data
         atualizarDesafioFinalUI()
-        addLog(
-            `Desafio final iniciado por ${data?.jogador?.nome || 'jogador'} (valide como ✅/❌)`,
-            'warning'
-        )
+        const jogadorFinal = data?.jogador?.nome || 'jogador'
+        addLog(`Desafio final iniciado por ${jogadorFinal} (valide como ✅/❌)`, 'warning')
+        showToast(`Desafio final iniciado por ${jogadorFinal}. Valide com ✅/❌`, 'warning')
     })
 
     // Desafio final forçado (PH esgotado)
@@ -436,15 +446,25 @@ function conectarServidor() {
         }
         atualizarDesafioFinalUI()
         addLog('PH esgotado: Desafio final deve ser respondido!', 'error')
+        showToast('PH esgotado! Desafio final deve ser respondido!', 'error')
+    })
+
+    socket.on('pedido_dica_enigma_final', data => {
+        const jogadorNome = data?.jogador?.nome || 'Jogador'
+        addLog(
+            `Pedido de dica do enigma final recebido de ${jogadorNome}.`,
+            'warning'
+        )
+        showToast(`Pedido de dica do enigma final: ${jogadorNome}.`, 'warning')
     })
 
     socket.on('jogo_finalizado', data => {
         gameState.desafioFinalAtual = null
         atualizarDesafioFinalUI()
-        addLog(
-            data?.mensagem || 'Jogo finalizado',
-            data?.resultado === 'vitoria' ? 'success' : 'error'
-        )
+        const msgFinal = data?.mensagem || 'Jogo finalizado'
+        const variantFinal = data?.resultado === 'vitoria' ? 'success' : 'error'
+        addLog(msgFinal, variantFinal)
+        showToast(msgFinal, variantFinal)
     })
 
     // Habilidades em tempo real
@@ -460,10 +480,12 @@ function conectarServidor() {
                 `Habilidade usada: ${jogadorNome} (Bruxa) revelou custos: ${cartas}`,
                 'info'
             )
+            showToast(`${jogadorNome} (Bruxa) revelou custos de cartas`, 'info')
             return
         }
 
         addLog(`Habilidade usada: ${jogadorNome} (${heroi})`, 'info')
+        showToast(`Habilidade usada: ${jogadorNome} (${heroi})`, 'info')
     })
 }
 
@@ -513,6 +535,41 @@ function atualizarEstadoJogo(estado) {
         updateTimerDisplay()
     }
 
+    // Restaurar charadaAtual a partir de riddlePendente (caso refresh)
+    if (!gameState.charadaAtual && estado?.riddlePendente) {
+        const rp = estado.riddlePendente
+        const jogador = Array.isArray(estado.listaJogadores)
+            ? estado.listaJogadores.find(j => j.id === rp.jogadorId)
+            : null
+        gameState.charadaAtual = {
+            casaId: rp.casaId,
+            texto: rp.texto || '',
+            jogador: jogador
+                ? { id: jogador.id, nome: jogador.nome }
+                : { id: rp.jogadorId || '', nome: '' },
+            custoPH: rp.custoPH
+        }
+    } else if (gameState.charadaAtual && !estado?.riddlePendente) {
+        // riddlePendente foi limpo no servidor → limpar localmente
+        gameState.charadaAtual = null
+    }
+
+    // Restaurar desafioFinalAtual a partir de desafioFinalJogadorId (caso refresh)
+    if (!gameState.desafioFinalAtual && estado?.desafioFinalJogadorId) {
+        const jogador = Array.isArray(estado.listaJogadores)
+            ? estado.listaJogadores.find(j => j.id === estado.desafioFinalJogadorId)
+            : null
+        gameState.desafioFinalAtual = {
+            motivo: 'jogador_iniciou',
+            jogador: jogador
+                ? { id: jogador.id, nome: jogador.nome }
+                : { id: estado.desafioFinalJogadorId, nome: '' },
+            textoEnigmaFinalMontado: estado.textoEnigmaFinalMontado || '',
+            slotsPreenchidos: true,
+            ph: estado.ph ?? 0
+        }
+    }
+
     atualizarUI()
 }
 
@@ -540,6 +597,7 @@ function atualizarUI() {
     // Tabuleiro em tempo real (mesmo grid de jogo.html)
     renderTabuleiro(lastSession)
     updateExibirEnigmaState()
+    updateVirarC5ButtonState()
 }
 
 function getHouseIdFromNumber(n) {
@@ -554,6 +612,23 @@ function getHouseNumberFromId(casaId) {
 function getCardById(session, casaId) {
     const flat = session?.estadoTabuleiro?.flat?.() || []
     return flat.find(c => c && c.id === casaId) || null
+}
+
+function isCarta5JaVirada(session) {
+    return (
+        !!session?.carta5ViradaPeloMestre || !!getCardById(session, 'C5')?.revelada
+    )
+}
+
+function updateVirarC5ButtonState() {
+    const btn = document.getElementById('btnVirarC5')
+    if (!btn) return
+
+    const bloqueado = isCarta5JaVirada(lastSession)
+    btn.disabled = bloqueado
+    btn.title = bloqueado
+        ? 'C5 já foi virada nesta sessão. Reinicie para liberar novamente.'
+        : ''
 }
 
 function applyHouseCatalog(session) {
@@ -606,8 +681,14 @@ function updateExibirEnigmaState() {
     const isCasa5 = casaId === 'C5'
     const pendente = lastSession?.riddlePendente
     const cardRevealed = !!getCardById(lastSession, casaId)?.revelada
+    const jaExibido = !!lastSession?.enigmasExibidos?.[casaId]
+    const jogadorDaVez = getCurrentPlayer(lastSession)
+    const jogadorNaCasa = jogadorDaVez?.posicao === casaId
+
     const canExibir =
-        isCasa5 || (!!pendente && pendente.casaId === casaId && cardRevealed)
+        isCasa5 ||
+        (!!pendente && pendente.casaId === casaId && cardRevealed) ||
+        (jaExibido && jogadorNaCasa)
 
     btn.disabled = !canExibir
 
@@ -616,12 +697,20 @@ function updateExibirEnigmaState() {
         hintEl.textContent = 'A casa C5 pode ser exibida a qualquer momento.'
         return
     }
-    if (!pendente) {
+    if (jaExibido && jogadorNaCasa) {
+        hintEl.textContent = 'Desafio já exibido anteriormente. Pode re-exibir.'
+        return
+    }
+    if (!pendente && !jaExibido) {
         hintEl.textContent =
             'Aguardando o jogador selecionar "Responder enigma".'
         return
     }
-    if (pendente.casaId !== casaId) {
+    if (!pendente && jaExibido && !jogadorNaCasa) {
+        hintEl.textContent = `Desafio já exibido. Jogador da vez não está em ${casaId}.`
+        return
+    }
+    if (pendente && pendente.casaId !== casaId) {
         hintEl.textContent = `Enigma pendente está em ${pendente.casaId}.`
         return
     }
@@ -809,14 +898,13 @@ function atualizarListaJogadores() {
                         <span class="stat-value">${posicao}</span>
                     </div>
                 </div>
-                ${
-                    podeRemover
-                        ? `<div class="player-actions">
+                ${podeRemover
+                    ? `<div class="player-actions">
                         <button class="btn-remove-player" data-player-id="${jogador.id}">
                             Remover
                         </button>
                     </div>`
-                        : ''
+                    : ''
                 }
             </div>
         `
@@ -998,6 +1086,13 @@ function validarDesafioFinal(acertou) {
 }
 
 function virarCarta5() {
+    if (isCarta5JaVirada(lastSession)) {
+        addLog(
+            'C5 já foi virada nesta sessão. Reinicie a sessão para virar novamente.',
+            'warning'
+        )
+        return
+    }
     if (!socket || !socket.connected) {
         addLog('Socket desconectado; não é possível virar C5', 'error')
         return
@@ -1119,9 +1214,9 @@ function simularEnigma() {
 
     const jogadorAtual =
         lastSession?.listaJogadores?.[
-            typeof lastSession?.jogadorAtualIndex === 'number'
-                ? lastSession.jogadorAtualIndex
-                : 0
+        typeof lastSession?.jogadorAtualIndex === 'number'
+            ? lastSession.jogadorAtualIndex
+            : 0
         ] || gameState.jogadorDaVez
 
     if (!jogadorAtual?.id) {
@@ -1187,8 +1282,8 @@ function updateStatus(message, type) {
         type === 'success'
             ? '#4CAF50'
             : type === 'error'
-              ? '#ff6b6b'
-              : 'rgba(255, 255, 255, 0.8)'
+                ? '#ff6b6b'
+                : 'rgba(255, 255, 255, 0.8)'
 }
 
 function addLog(message, type = 'info') {

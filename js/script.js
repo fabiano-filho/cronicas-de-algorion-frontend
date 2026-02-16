@@ -11,7 +11,14 @@ const heroAbilityStatus = document.getElementById('heroAbilityStatus')
 const btnResponderEnigmaFinal = document.getElementById(
     'btnResponderEnigmaFinal'
 )
+const btnPedirDicaEnigmaFinal = document.getElementById(
+    'btnPedirDicaEnigmaFinal'
+)
+const btnAbrirEnigmaOverlay = document.getElementById('btnAbrirEnigmaOverlay')
 const btnSairSessao = document.getElementById('btnSairSessao')
+const riddleOverlay = document.getElementById('riddleOverlay')
+const btnFecharEnigmaOverlay = document.getElementById('btnFecharEnigmaOverlay')
+const riddleOverlayText = document.getElementById('riddleOverlayText')
 
 // Event announcement UI (Street Fighter style)
 const eventAnnouncementOverlay = document.getElementById(
@@ -26,6 +33,9 @@ let lastAbilityUsed = null
 let lastEventoAtivoNome = null // Track last event to detect changes
 let isEventAnnouncementActive = false // Block actions during announcement
 let pendingMermaidAbilityTarget = false
+let modalTiltMoveHandler = null
+let modalTiltLeaveHandler = null
+let activeTiltCard = null
 
 // House actions UI
 const actionModal = document.getElementById('actionModal')
@@ -38,6 +48,9 @@ let c5WaitToastShown = false
 let activeHouseContext = null
 let lastC5Revealed = null
 let c5MandatoryResponseRequired = false
+let lastRiddleScriptValue = ''
+let seenHintCount = 0
+let riddleReadStateInitialized = false
 
 const ui = window.AlgorionUI || null
 const showToast = (message, variant = 'info', options = {}) => {
@@ -76,11 +89,23 @@ function areFinalSlotsFilled(session) {
     return slotsState.every(id => id !== null)
 }
 
+function hasRequestedFinalHint(session) {
+    const jogadorId = sessionData?.jogadorId
+    if (!jogadorId) return false
+    return !!session?.pedidosDicaEnigmaFinalPorJogador?.[jogadorId]
+}
+
 function updateFinalRiddleButton(session) {
-    if (!btnResponderEnigmaFinal) return
+    if (!btnResponderEnigmaFinal && !btnPedirDicaEnigmaFinal) return
     if (sessionData.isSpectator) {
-        btnResponderEnigmaFinal.style.display = 'none'
-        btnResponderEnigmaFinal.disabled = true
+        if (btnResponderEnigmaFinal) {
+            btnResponderEnigmaFinal.style.display = 'none'
+            btnResponderEnigmaFinal.disabled = true
+        }
+        if (btnPedirDicaEnigmaFinal) {
+            btnPedirDicaEnigmaFinal.style.display = 'none'
+            btnPedirDicaEnigmaFinal.disabled = true
+        }
         return
     }
 
@@ -95,9 +120,157 @@ function updateFinalRiddleButton(session) {
         socket.connected &&
         !!sessionData?.sessionId &&
         !!sessionData?.jogadorId
+    const alreadyRequested = hasRequestedFinalHint(session)
 
-    btnResponderEnigmaFinal.style.display = shouldShow ? 'inline-block' : 'none'
-    btnResponderEnigmaFinal.disabled = !canClick
+    if (btnResponderEnigmaFinal) {
+        btnResponderEnigmaFinal.style.display = shouldShow ? 'inline-block' : 'none'
+        btnResponderEnigmaFinal.disabled = !canClick
+    }
+
+    if (btnPedirDicaEnigmaFinal) {
+        btnPedirDicaEnigmaFinal.style.display = shouldShow ? 'inline-block' : 'none'
+        btnPedirDicaEnigmaFinal.disabled = !canClick || alreadyRequested
+        btnPedirDicaEnigmaFinal.textContent = alreadyRequested
+            ? 'Dica já pedida'
+            : 'Pedir dica ao Mestre'
+    }
+}
+
+function getReadableHintCount() {
+    return hintCardsData.filter(
+        card => typeof card?.texto === 'string' && card.texto.trim().length > 0
+    ).length
+}
+
+function syncUnreadRiddleHints({ initialize = false } = {}) {
+    if (!btnAbrirEnigmaOverlay) return
+
+    const readableHintCount = getReadableHintCount()
+    if (initialize || !riddleReadStateInitialized) {
+        seenHintCount = readableHintCount
+        riddleReadStateInitialized = true
+    }
+
+    const hasUnread = readableHintCount > seenHintCount
+    btnAbrirEnigmaOverlay.classList.toggle('has-unread', hasUnread)
+}
+
+function markRiddleHintsAsSeen() {
+    seenHintCount = getReadableHintCount()
+    syncUnreadRiddleHints()
+}
+
+function buildFinalRiddleOverlayTokens() {
+    return slotsState.map((cardId, slotIndex) => {
+        if (!cardId) {
+            return {
+                text: '____',
+                missing: true
+            }
+        }
+
+        const baseCard = hintCardsData.find(c => c.id === cardId)
+        const card =
+            getActiveHintVariantForSlot(slotIndex, baseCard) ||
+            normalizeHintVariant(baseCard) ||
+            baseCard
+        const cardText =
+            typeof card?.texto === 'string' ? card.texto.trim() : ''
+
+        if (!cardText) {
+            return {
+                text: '____',
+                missing: true
+            }
+        }
+
+        return {
+            text: cardText,
+            missing: false
+        }
+    })
+}
+
+function updateFinalRiddleScript(session, { forceBurn = false } = {}) {
+    if (!riddleOverlayText) return
+
+    const tokens = buildFinalRiddleOverlayTokens()
+    const sessionRef = session || lastSession
+    const isComplete = areFinalSlotsFilled(sessionRef)
+    const signature = tokens
+        .map(token => (token.missing ? '_' : token.text))
+        .join('|')
+    const changed = signature !== lastRiddleScriptValue
+    const shouldBurn = !isComplete && (changed || forceBurn)
+
+    riddleOverlayText.innerHTML = ''
+    riddleOverlayText.classList.toggle('is-complete', isComplete)
+
+    const fragment = document.createDocumentFragment()
+    let litCharIndex = 0
+    tokens.forEach(token => {
+        const tokenEl = document.createElement('span')
+        tokenEl.className = 'riddle-token'
+
+        if (token.missing) {
+            tokenEl.classList.add('is-missing')
+            tokenEl.textContent = '____'
+        } else {
+            tokenEl.classList.add('is-lit')
+            Array.from(token.text).forEach(character => {
+                const charEl = document.createElement('span')
+                charEl.className = 'riddle-char'
+                if (character === ' ') {
+                    charEl.classList.add('is-space')
+                    charEl.textContent = '\u00a0'
+                } else {
+                    charEl.textContent = character
+                    charEl.style.setProperty(
+                        '--riddle-char-delay',
+                        `${litCharIndex * 42}ms`
+                    )
+                    litCharIndex += 1
+                }
+                tokenEl.appendChild(charEl)
+            })
+            if (shouldBurn) {
+                tokenEl.classList.add('is-burn')
+            }
+        }
+
+        fragment.appendChild(tokenEl)
+    })
+
+    if (tokens.length === 0) {
+        const fallback = document.createElement('span')
+        fallback.className = 'riddle-token is-missing'
+        fallback.textContent = '____'
+        fragment.appendChild(fallback)
+    }
+
+    riddleOverlayText.appendChild(fragment)
+
+    if (shouldBurn) {
+        riddleOverlayText.classList.remove('is-burning')
+        void riddleOverlayText.offsetWidth
+        riddleOverlayText.classList.add('is-burning')
+    } else {
+        riddleOverlayText.classList.remove('is-burning')
+    }
+
+    lastRiddleScriptValue = signature
+}
+
+function openRiddleOverlay() {
+    if (!riddleOverlay) return
+    updateFinalRiddleScript(lastSession, { forceBurn: true })
+    markRiddleHintsAsSeen()
+    riddleOverlay.classList.add('active')
+}
+
+function closeRiddleOverlay() {
+    if (!riddleOverlay) return
+    riddleOverlay.classList.remove('active')
 }
 
 const HERO_COLORS = {
@@ -150,10 +323,27 @@ if (eventCard) {
 }
 
 // Modal Functions
-function openCardModal(frontSrc, backSrc, showBackFirst = false) {
+function clearModalTiltHandlers() {
+    if (modal && modalTiltMoveHandler) {
+        modal.removeEventListener('mousemove', modalTiltMoveHandler)
+        modalTiltMoveHandler = null
+    }
+    if (modal && modalTiltLeaveHandler) {
+        modal.removeEventListener('mouseleave', modalTiltLeaveHandler)
+        modalTiltLeaveHandler = null
+    }
+    if (activeTiltCard) {
+        activeTiltCard.style.setProperty('--tilt-x', '0deg')
+        activeTiltCard.style.setProperty('--tilt-y', '0deg')
+        activeTiltCard = null
+    }
+}
+
+function openCardModal(frontSrc, backSrc, showBackFirst = false, options = {}) {
+    clearModalTiltHandlers()
     modalCardContainer.innerHTML = ''
 
-    // Create wrapper for card and flip button
+    // Create wrapper for expanded card
     const cardWrapper = document.createElement('div')
     cardWrapper.className = 'card-wrapper'
 
@@ -165,6 +355,7 @@ function openCardModal(frontSrc, backSrc, showBackFirst = false) {
     faceFront.className = 'card-face card-front'
     const imgFront = document.createElement('img')
     imgFront.src = frontSrc
+    imgFront.alt = 'Frente da carta'
     faceFront.appendChild(imgFront)
 
     // Back Face (what's visible after flip)
@@ -172,12 +363,13 @@ function openCardModal(frontSrc, backSrc, showBackFirst = false) {
     faceBack.className = 'card-face card-back'
     const imgBack = document.createElement('img')
     imgBack.src = backSrc
+    imgBack.alt = 'Verso da carta'
     faceBack.appendChild(imgBack)
 
     zoomedCard.appendChild(faceFront)
     zoomedCard.appendChild(faceBack)
 
-    // Flip Button - adjust text based on what's showing
+    // Legacy flip control (hidden in CSS and not appended)
     const flipButton = document.createElement('button')
     flipButton.className = 'flip-card-button'
     const initialButtonText = showBackFirst ? 'Ver Frente' : 'Ver Verso'
@@ -188,6 +380,29 @@ function openCardModal(frontSrc, backSrc, showBackFirst = false) {
     let isFlipped = !!showBackFirst
     if (isFlipped) {
         zoomedCard.classList.add('flipped')
+    }
+
+    const hintVariants = Array.isArray(options?.hintVariants)
+        ? options.hintVariants
+        : []
+    let activeHintIndex = 0
+    if (hintVariants.length > 0 && options?.initialHintVariantId) {
+        const foundIndex = hintVariants.findIndex(
+            variant => variant?.variantId === options.initialHintVariantId
+        )
+        if (foundIndex >= 0) activeHintIndex = foundIndex
+    }
+
+    const applyHintVariantToCard = variant => {
+        if (!variant) return
+        if (variant.frontSrc) imgFront.src = variant.frontSrc
+        if (variant.backSrc) imgBack.src = variant.backSrc
+        if (variant.frontAlt) imgFront.alt = variant.frontAlt
+        if (variant.backAlt) imgBack.alt = variant.backAlt
+    }
+
+    if (hintVariants.length > 0) {
+        applyHintVariantToCard(hintVariants[activeHintIndex])
     }
 
     // Flip function
@@ -206,20 +421,155 @@ function openCardModal(frontSrc, backSrc, showBackFirst = false) {
         flipCard()
     })
 
-    // Flip on button click
+    // Keeps compatibility if re-enabled in the future
     flipButton.addEventListener('click', function (e) {
         e.stopPropagation()
         flipCard()
     })
 
-    cardWrapper.appendChild(zoomedCard)
-    cardWrapper.appendChild(flipButton)
+    // Subtle tilt/parallax should react across the whole overlay area
+    if (modal) {
+        const maxTilt = 7
+        const updateTilt = (clientX, clientY) => {
+            const rect = zoomedCard.getBoundingClientRect()
+            const centerX = rect.left + rect.width / 2
+            const centerY = rect.top + rect.height / 2
+            const normX = Math.max(
+                -1,
+                Math.min(1, (clientX - centerX) / (window.innerWidth * 0.5))
+            )
+            const normY = Math.max(
+                -1,
+                Math.min(1, (clientY - centerY) / (window.innerHeight * 0.5))
+            )
+            zoomedCard.style.setProperty(
+                '--tilt-x',
+                `${(-normY * maxTilt).toFixed(2)}deg`
+            )
+            zoomedCard.style.setProperty(
+                '--tilt-y',
+                `${(normX * maxTilt).toFixed(2)}deg`
+            )
+        }
+
+        modalTiltMoveHandler = e => {
+            if (!modal.classList.contains('active')) return
+            updateTilt(e.clientX, e.clientY)
+        }
+        modalTiltLeaveHandler = () => {
+            zoomedCard.style.setProperty('--tilt-x', '0deg')
+            zoomedCard.style.setProperty('--tilt-y', '0deg')
+        }
+        activeTiltCard = zoomedCard
+        modal.addEventListener('mousemove', modalTiltMoveHandler)
+        modal.addEventListener('mouseleave', modalTiltLeaveHandler)
+    }
+
+    if (hintVariants.length > 0) {
+        cardWrapper.classList.add('has-hint-selector')
+        const cardRow = document.createElement('div')
+        cardRow.className = 'modal-hint-card-row'
+
+        const selectorFooter = document.createElement('div')
+        selectorFooter.className = 'modal-hint-selector-center'
+
+        const navPrev = document.createElement('button')
+        navPrev.type = 'button'
+        navPrev.className = 'modal-hint-nav modal-hint-nav-prev'
+        navPrev.textContent = '<'
+        navPrev.setAttribute('aria-label', 'Pista anterior')
+
+        const hintMeta = document.createElement('div')
+        hintMeta.className = 'modal-hint-meta'
+
+        const equipButton = document.createElement('button')
+        equipButton.type = 'button'
+        equipButton.className = 'modal-hint-equip'
+
+        const navNext = document.createElement('button')
+        navNext.type = 'button'
+        navNext.className = 'modal-hint-nav modal-hint-nav-next'
+        navNext.textContent = '>'
+        navNext.setAttribute('aria-label', 'Próxima pista')
+
+        const updateSelectorState = () => {
+            const current = hintVariants[activeHintIndex]
+            applyHintVariantToCard(current)
+
+            const hasMultiple = hintVariants.length > 1
+            navPrev.disabled = !hasMultiple
+            navNext.disabled = !hasMultiple
+            navPrev.classList.toggle('is-hidden', !hasMultiple)
+            navNext.classList.toggle('is-hidden', !hasMultiple)
+
+            const equipped =
+                options?.isHintVariantEquipped?.(current) ??
+                hintVariants.length <= 1
+            const canEquip =
+                options?.canEquipHintVariant !== false &&
+                typeof options?.onEquipHintVariant === 'function'
+
+            hintMeta.textContent =
+                hintVariants.length > 1
+                    ? `Pista ${activeHintIndex + 1}/${hintVariants.length}`
+                    : current?.label || 'Pista'
+            if (equipped) {
+                equipButton.textContent = 'Pista Ativa'
+                equipButton.disabled = true
+                equipButton.classList.add('is-active')
+            } else if (!canEquip) {
+                equipButton.textContent = 'Somente leitura'
+                equipButton.disabled = true
+                equipButton.classList.remove('is-active')
+            } else {
+                equipButton.textContent = 'Usar esta Pista'
+                equipButton.disabled = false
+                equipButton.classList.remove('is-active')
+            }
+        }
+
+        navPrev.addEventListener('click', event => {
+            event.stopPropagation()
+            if (hintVariants.length <= 1) return
+            activeHintIndex =
+                (activeHintIndex - 1 + hintVariants.length) % hintVariants.length
+            updateSelectorState()
+        })
+
+        navNext.addEventListener('click', event => {
+            event.stopPropagation()
+            if (hintVariants.length <= 1) return
+            activeHintIndex = (activeHintIndex + 1) % hintVariants.length
+            updateSelectorState()
+        })
+
+        equipButton.addEventListener('click', event => {
+            event.stopPropagation()
+            if (equipButton.disabled) return
+            const current = hintVariants[activeHintIndex]
+            options?.onEquipHintVariant?.(current)
+            updateSelectorState()
+        })
+
+        cardRow.appendChild(navPrev)
+        cardRow.appendChild(zoomedCard)
+        cardRow.appendChild(navNext)
+        selectorFooter.appendChild(hintMeta)
+        selectorFooter.appendChild(equipButton)
+        cardWrapper.appendChild(cardRow)
+        cardWrapper.appendChild(selectorFooter)
+
+        updateSelectorState()
+    } else {
+        cardWrapper.appendChild(zoomedCard)
+    }
     modalCardContainer.appendChild(cardWrapper)
     modal.classList.add('active')
 }
 
 // Close Modal Logic
 function closeModal() {
+    clearModalTiltHandlers()
     modal.classList.remove('active')
     setTimeout(() => {
         modalCardContainer.innerHTML = ''
@@ -232,10 +582,9 @@ if (modalClose) {
 
 if (modal) {
     modal.addEventListener('click', e => {
-        if (
-            e.target === modal ||
-            e.target.classList.contains('modal-content')
-        ) {
+        const clickedInsideWrapper = !!e.target.closest('.card-wrapper')
+        const clickedCloseButton = !!e.target.closest('#modalClose')
+        if (!clickedInsideWrapper && !clickedCloseButton) {
             closeModal()
         }
     })
@@ -249,11 +598,7 @@ if (modal) {
 }
 
 // Hint cards carousel functionality + Drag-and-Drop
-const TOTAL_CARDS = 8
-const VISIBLE_CARDS = 3
-
-// Track current starting index
-let currentIndex = 0
+const TOTAL_SLOTS = 8
 
 // =====================================================
 // INTEGRAÇÃO COM BACKEND (Socket.IO)
@@ -408,6 +753,58 @@ function closeActionModal() {
     })
 }
 
+function createActionPreviewCard(card) {
+    const preview = document.createElement('div')
+    preview.className = 'action-card-preview'
+
+    if (card?.title && card?.showTitle) {
+        const titleEl = document.createElement('div')
+        titleEl.className = 'action-card-title'
+        titleEl.textContent = card.title
+        preview.appendChild(titleEl)
+    }
+
+    const stack = document.createElement('div')
+    stack.className = 'action-card-stack'
+
+    const mainCardBtn = document.createElement('button')
+    mainCardBtn.type = 'button'
+    mainCardBtn.className = 'action-preview-card action-preview-card-main'
+    const mainImg = document.createElement('img')
+    mainImg.src = card?.src || ''
+    mainImg.alt = card?.alt || 'Carta do local'
+    mainCardBtn.appendChild(mainImg)
+    stack.appendChild(mainCardBtn)
+
+    const clueSrc = card?.clue?.src
+    if (clueSrc) {
+        preview.classList.add('has-clue')
+
+        const clueCardBtn = document.createElement('button')
+        clueCardBtn.type = 'button'
+        clueCardBtn.className = 'action-preview-card action-preview-card-clue'
+        const clueImg = document.createElement('img')
+        clueImg.src = clueSrc
+        clueImg.alt = card?.clue?.alt || 'Carta de pista'
+        clueCardBtn.appendChild(clueImg)
+        stack.appendChild(clueCardBtn)
+
+        const setFrontCard = frontCard => {
+            preview.classList.toggle('is-clue-active', frontCard === 'clue')
+        }
+
+        clueCardBtn.addEventListener('click', () => {
+            setFrontCard('clue')
+        })
+        mainCardBtn.addEventListener('click', () => {
+            setFrontCard('main')
+        })
+    }
+
+    preview.appendChild(stack)
+    return preview
+}
+
 function openActionModal({ title, actions, hint, card }) {
     if (!actionModal || !actionBody) return
     if (actionTitle) actionTitle.textContent = title || ''
@@ -440,18 +837,7 @@ function openActionModal({ title, actions, hint, card }) {
         const layout = document.createElement('div')
         layout.className = 'action-layout'
 
-        const preview = document.createElement('div')
-        preview.className = 'action-card-preview'
-        if (card?.title && card?.showTitle) {
-            const titleEl = document.createElement('div')
-            titleEl.className = 'action-card-title'
-            titleEl.textContent = card.title
-            preview.appendChild(titleEl)
-        }
-        const img = document.createElement('img')
-        img.src = card.src
-        img.alt = card.alt || 'Carta'
-        preview.appendChild(img)
+        const preview = createActionPreviewCard(card)
 
         layout.appendChild(preview)
         layout.appendChild(controls)
@@ -816,14 +1202,14 @@ function openHouseActionModalForHouse({ casaId, houseNum, houseName }) {
     const hint = blockedByC5
         ? 'Aguardando o Mestre virar a carta C5 para iniciar o jogo.'
         : forceRespostaCarta5
-          ? 'Carta C5 revelada: responda primeiro o desafio da casa C5 para liberar movimentos.'
-          : !myTurn
-            ? 'Ações de casa só podem ser feitas na sua vez.'
-            : onThisHouse
-              ? revealed
-                  ? 'Você está aqui. Carta já revelada.'
-                  : 'Você está aqui. Carta ainda não revelada.'
-              : `Você está em ${myPos || '?'}.`
+            ? 'Carta C5 revelada: responda primeiro o desafio da casa C5 para liberar movimentos.'
+            : !myTurn
+                ? 'Ações de casa só podem ser feitas na sua vez.'
+                : onThisHouse
+                    ? revealed
+                        ? 'Você está aqui. Carta já revelada.'
+                        : 'Você está aqui. Carta ainda não revelada.'
+                    : `Você está em ${myPos || '?'}.`
 
     const actions = []
     if (
@@ -853,6 +1239,13 @@ function openHouseActionModalForHouse({ casaId, houseNum, houseName }) {
         alt: revealed ? displayTitle : 'Carta oculta',
         title: displayTitle,
         showTitle: revealed
+    }
+    const activeClueCard = getActiveHintVariantForHouse(casaId)
+    if (activeClueCard?.source) {
+        card.clue = {
+            src: resolveAssetUrl(activeClueCard.source),
+            alt: `Carta de pista de ${resolvedHouseName}`
+        }
     }
 
     if (sessionData.isSpectator) {
@@ -915,10 +1308,10 @@ function openHouseActionModalForHouse({ casaId, houseNum, houseName }) {
             const responderCusto = alreadyAnswered
                 ? explorarNovamenteCost
                 : getEnigmaCostForPlayer(
-                      lastSession,
-                      casaId,
-                      sessionData.jogadorId
-                  )
+                    lastSession,
+                    casaId,
+                    sessionData.jogadorId
+                )
             actions.push({
                 label: `Responder enigma (${responderCusto} PH)`,
                 disabled: !myTurn || myPendingAnswer,
@@ -1009,7 +1402,7 @@ function getEnigmaCostForPlayer(session, casaId, jogadorId) {
 
     const descontoEvento =
         session?.eventoAtivo?.modificadores?.primeiroEnigmaDesconto &&
-        !session?.primeiroEnigmaDescontoUsado
+            !session?.primeiroEnigmaDescontoUsado
             ? Number(session.eventoAtivo.modificadores.primeiroEnigmaDesconto)
             : 0
 
@@ -1024,7 +1417,7 @@ function getEnigmaCostSemHeroi(session, casaId) {
     const base = Number(getCardById(session, casaId)?.custoExploracao ?? 1) || 0
     const descontoEvento =
         session?.eventoAtivo?.modificadores?.primeiroEnigmaDesconto &&
-        !session?.primeiroEnigmaDescontoUsado
+            !session?.primeiroEnigmaDescontoUsado
             ? Number(session.eventoAtivo.modificadores.primeiroEnigmaDesconto)
             : 0
     return Math.max(0, base + descontoEvento)
@@ -1090,14 +1483,26 @@ function updateAbilityButtonFromSession(session) {
     }
 
     const used = !!session?.habilidadesUsadasPorJogador?.[sessionData.jogadorId]
+
+    // Detectar estado "ativo mas ainda não consumido"
+    const anaoActive =
+        heroTipo === 'Anao' &&
+        !used &&
+        (session?.descontoEnigmaHeroiPorJogador?.[sessionData.jogadorId] ?? 0) !== 0
+    const humanoActive =
+        heroTipo === 'Humano' &&
+        !used &&
+        !!session?.movimentoGratisHeroiPorJogador?.[sessionData.jogadorId]
+    const abilityActive = anaoActive || humanoActive
+
     let ruleBlockedReason = ''
-    if (heroTipo === 'Humano') {
+    if (heroTipo === 'Humano' && !humanoActive) {
         const custoMover = getMoveCostForPlayer(session, sessionData.jogadorId)
         if (custoMover <= 0) {
             ruleBlockedReason =
                 'A habilidade do Humano só pode ser usada quando o custo de movimento for maior que 0.'
         }
-    } else if (heroTipo === 'Anao') {
+    } else if (heroTipo === 'Anao' && !anaoActive) {
         const casaId = myPlayer?.posicao
         if (casaId) {
             const custoEnigma = getEnigmaCostSemHeroi(session, casaId)
@@ -1122,6 +1527,7 @@ function updateAbilityButtonFromSession(session) {
         !sessionData?.jogadorId ||
         sessionData?.isMestre ||
         used ||
+        abilityActive ||
         ruleBlocked
 
     if (!heroTipo) {
@@ -1130,10 +1536,13 @@ function updateAbilityButtonFromSession(session) {
         btnUsarHabilidade.textContent = `Usar habilidade (${heroTipo})`
     }
 
-    if (used) {
-        setAbilityStatus('Habilidade já usada na partida.')
+    if (abilityActive) {
+        const hint = getAbilityHint(heroTipo)
+        setAbilityStatus(`Ativo — ${hint}`)
+    } else if (used) {
+        setAbilityStatus('Inativa — Já utilizada na partida.')
     }
-    if (!used && ruleBlocked) {
+    if (!used && !abilityActive && ruleBlocked) {
         setAbilityStatus(ruleBlockedReason)
     }
     if (mermaidSelectionActive) {
@@ -1149,18 +1558,17 @@ let hintCardsData = []
 // Track slots state (8 slots, each can hold a card ID or null)
 const slotsState = new Array(8).fill(null)
 
-// Track used cards (Set of card IDs currently in slots)
-const usedCards = new Set()
+// Track multiple variants (easy/hard) per house and active variant per slot
+const hintVariantsByHouse = new Map()
+const activeHintVariantBySlot = new Map()
 
 // Drag state
 let draggedCardId = null
 let draggedFromSlot = null
 
 // DOM elements
-const scrollUpBtn = document.getElementById('scrollUp')
-const scrollDownBtn = document.getElementById('scrollDown')
-const cardsContainer = document.querySelector('.hint-cards-container')
-const slots = document.querySelectorAll('.slot')
+const hintGrid = document.getElementById('hintGrid')
+const hintSlots = document.querySelectorAll('.hint-slot')
 
 function conectarServidor() {
     if (typeof io === 'undefined') {
@@ -1204,13 +1612,18 @@ function conectarServidor() {
 
         const currentPlayer =
             session.listaJogadores?.[session.jogadorAtualIndex] || null
-        const turnEl = document.querySelector('.turn-display strong')
+        const turnEl = document.querySelector('.turn-display')
         if (turnEl) {
             const isMyTurn =
                 !!currentPlayer && currentPlayer.id === sessionData.jogadorId
-            turnEl.textContent = isMyTurn
-                ? 'Sua vez'
-                : currentPlayer?.nome || '-'
+            if (isMyTurn) {
+                turnEl.innerHTML = '<strong>SUA VEZ</strong>'
+            } else {
+                turnEl.textContent = 'Vez de '
+                const strong = document.createElement('strong')
+                strong.textContent = currentPlayer?.nome || '-'
+                turnEl.appendChild(strong)
+            }
         }
 
         applySessionToHints(session)
@@ -1320,6 +1733,11 @@ function conectarServidor() {
         setAbilityStatus(
             `Sereia: sinal de dica sutil enviado ao Mestre${casaLabel}.`
         )
+    })
+
+    socket.on('pedido_dica_enigma_final_confirmado', data => {
+        if (data?.jogadorId !== sessionData.jogadorId) return
+        showToast('Pedido de dica enviado ao Mestre.', 'info')
     })
 
     socket.on('enigma_exibido', async data => {
@@ -1442,22 +1860,32 @@ function conectarServidor() {
 
     socket.on('carta_pista_adicionada', ({ carta }) => {
         upsertHintCard(carta)
-        updateDisplay()
-        updateButtons()
+        backfillSlotsFromDeck(hintCardsData)
+        renderHintGrid()
+        syncUnreadRiddleHints()
+        updateFinalRiddleScript(lastSession, { forceBurn: true })
     })
 
     socket.on('carta_pista_atualizada', ({ carta }) => {
         upsertHintCard(carta)
-        updateDisplay()
-        updateButtons()
+        renderHintGrid()
+        syncUnreadRiddleHints()
+        updateFinalRiddleScript(lastSession)
     })
 
     socket.on('slot_atualizado', data => {
         if (data?.slotsEnigmaFinal) {
             applySlotsFromServer(data.slotsEnigmaFinal)
-            updateDisplay()
-            updateButtons()
+            if (lastSession) {
+                lastSession.slotsEnigmaFinal = data.slotsEnigmaFinal
+                if (typeof data?.textoEnigmaFinalMontado === 'string') {
+                    lastSession.textoEnigmaFinalMontado =
+                        data.textoEnigmaFinalMontado
+                }
+            }
+            renderHintGrid()
             updateFinalRiddleButton(lastSession)
+            updateFinalRiddleScript(lastSession, { forceBurn: true })
         }
     })
 
@@ -1497,6 +1925,32 @@ if (actionModal) {
         }
     })
 }
+
+if (btnAbrirEnigmaOverlay) {
+    btnAbrirEnigmaOverlay.addEventListener('click', () => {
+        openRiddleOverlay()
+    })
+}
+
+if (btnFecharEnigmaOverlay) {
+    btnFecharEnigmaOverlay.addEventListener('click', () => {
+        closeRiddleOverlay()
+    })
+}
+
+if (riddleOverlay) {
+    riddleOverlay.addEventListener('click', e => {
+        if (e.target === riddleOverlay) {
+            closeRiddleOverlay()
+        }
+    })
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && riddleOverlay?.classList.contains('active')) {
+        closeRiddleOverlay()
+    }
+})
 
 if (btnUsarHabilidade) {
     btnUsarHabilidade.addEventListener('click', () => {
@@ -1580,7 +2034,8 @@ if (btnResponderEnigmaFinal) {
             )
             return
         }
-        if (!areFinalSlotsFilled(lastSession)) {
+        const phZerado = typeof lastSession.ph === 'number' && lastSession.ph <= 0
+        if (!areFinalSlotsFilled(lastSession) && !phZerado) {
             showToast(
                 'Preencha todos os slots de dica antes de responder.',
                 'warning'
@@ -1632,7 +2087,6 @@ if (btnSairSessao) {
 }
 
 function applySlotsFromServer(slotsEnigmaFinal) {
-    usedCards.clear()
     slotsState.fill(null)
 
     if (!Array.isArray(slotsEnigmaFinal)) return
@@ -1643,69 +2097,275 @@ function applySlotsFromServer(slotsEnigmaFinal) {
             slot.slotIndex < slotsState.length
         ) {
             slotsState[slot.slotIndex] = slot.cardId ?? null
-            if (slot.cardId) usedCards.add(slot.cardId)
         }
     })
 }
 
+function backfillSlotsFromDeck(deckPistas) {
+    if (!Array.isArray(deckPistas) || deckPistas.length === 0) return
+
+    const knownIds = new Set(
+        deckPistas
+            .map(card => card?.id)
+            .filter(cardId => typeof cardId === 'string')
+    )
+
+    // Limpar IDs órfãos de slots legados para liberar espaço visual.
+    for (let index = 0; index < slotsState.length; index++) {
+        const slotCardId = slotsState[index]
+        if (slotCardId !== null && !knownIds.has(slotCardId)) {
+            slotsState[index] = null
+        }
+    }
+
+    const alreadyPlaced = new Set(slotsState.filter(cardId => cardId !== null))
+
+    deckPistas.forEach(card => {
+        if (!card?.id || alreadyPlaced.has(card.id)) return
+        const emptySlotIndex = slotsState.indexOf(null)
+        if (emptySlotIndex === -1) return
+        slotsState[emptySlotIndex] = card.id
+        alreadyPlaced.add(card.id)
+    })
+}
+
+function getHintVariantId(card) {
+    return `${card?.id || ''}::${card?.tipo || ''}::${card?.source || ''}`
+}
+
+function normalizeHintVariant(card) {
+    if (!card) return null
+    return {
+        ...card,
+        variantId: getHintVariantId(card)
+    }
+}
+
+function registerHintVariant(card) {
+    if (!card?.casaId) return
+    const normalized = normalizeHintVariant(card)
+    if (!normalized) return
+
+    const variants = hintVariantsByHouse.get(card.casaId) || []
+    const idx = variants.findIndex(v => v.variantId === normalized.variantId)
+    if (idx >= 0) variants[idx] = normalized
+    else variants.push(normalized)
+    hintVariantsByHouse.set(card.casaId, variants)
+}
+
+function registerHintVariantsFromDeck(deckPistas) {
+    if (!Array.isArray(deckPistas)) return
+    deckPistas.forEach(card => registerHintVariant(card))
+}
+
+function registerHintVariantsFromSession(session) {
+    const persisted = session?.hintVariantsByHouse
+    if (!persisted || typeof persisted !== 'object') return
+
+    Object.values(persisted).forEach(variants => {
+        if (!Array.isArray(variants)) return
+        variants.forEach(card => registerHintVariant(card))
+    })
+}
+
+if (btnPedirDicaEnigmaFinal) {
+    btnPedirDicaEnigmaFinal.addEventListener('click', () => {
+        if (isActionBlocked()) {
+            showToast('Aguarde o anúncio do evento terminar.', 'warning')
+            return
+        }
+        if (!lastSession) return
+        if (!isMyTurn(lastSession)) {
+            showToast('Aguarde sua vez para pedir dica do enigma final.', 'warning')
+            return
+        }
+        if (!areFinalSlotsFilled(lastSession) && lastSession?.ph > 0) {
+            showToast(
+                'O enigma final ainda não está liberado para pedir dica.',
+                'warning'
+            )
+            return
+        }
+        if (hasRequestedFinalHint(lastSession)) {
+            showToast('Você já pediu uma dica do enigma final.', 'info')
+            return
+        }
+        if (!socket || !socket.connected) {
+            showToast('Sem conexão com o servidor.', 'error')
+            return
+        }
+
+        socket.emit('pedir_dica_enigma_final', {
+            sessionId: sessionData.sessionId,
+            jogadorId: sessionData.jogadorId
+        })
+    })
+}
+
+function hydrateActiveHintVariantsFromSession(session) {
+    activeHintVariantBySlot.clear()
+    const persisted = session?.activeHintVariantBySlot
+    if (!persisted || typeof persisted !== 'object') return
+
+    Object.entries(persisted).forEach(([slotKey, variantId]) => {
+        const slotIndex = Number(slotKey)
+        if (
+            Number.isInteger(slotIndex) &&
+            typeof variantId === 'string' &&
+            variantId.trim()
+        ) {
+            activeHintVariantBySlot.set(slotIndex, variantId)
+        }
+    })
+}
+
+function getHintVariantsForHouse(casaId) {
+    return hintVariantsByHouse.get(casaId) || []
+}
+
+function getHintCardByHouse(casaId) {
+    return hintCardsData.find(c => c?.casaId === casaId) || null
+}
+
+function getSlotIndexForHouse(casaId) {
+    return slotsState.findIndex(cardId => {
+        if (!cardId) return false
+        const cardData = hintCardsData.find(c => c.id === cardId)
+        return cardData?.casaId === casaId
+    })
+}
+
+function getActiveHintVariantForHouse(casaId) {
+    if (!casaId) return null
+
+    const cardData = getHintCardByHouse(casaId)
+    if (!cardData) return null
+
+    const slotIndex = getSlotIndexForHouse(casaId)
+    if (slotIndex >= 0) {
+        return (
+            getActiveHintVariantForSlot(slotIndex, cardData) ||
+            normalizeHintVariant(cardData) ||
+            cardData
+        )
+    }
+
+    const variants = getHintVariantsForHouse(casaId)
+    if (!variants.length) {
+        return normalizeHintVariant(cardData) || cardData
+    }
+
+    const currentVariantId = getHintVariantId(cardData)
+    const currentVariant = variants.find(v => v.variantId === currentVariantId)
+    return currentVariant || variants[0]
+}
+
+function getHintVariantLabel(variant, index, total) {
+    return total > 1 ? 'Pista ' + (index + 1) : 'Pista'
+}
+
+function getActiveHintVariantForSlot(slotIndex, cardData) {
+    if (!cardData?.casaId) return cardData || null
+    const variants = getHintVariantsForHouse(cardData.casaId)
+    if (!variants.length) return normalizeHintVariant(cardData)
+
+    const selectedVariantId = activeHintVariantBySlot.get(slotIndex)
+    if (selectedVariantId) {
+        const selected = variants.find(v => v.variantId === selectedVariantId)
+        if (selected) return selected
+    }
+
+    const currentVariantId = getHintVariantId(cardData)
+    const current = variants.find(v => v.variantId === currentVariantId)
+    return current || variants[0]
+}
+
+function setActiveHintVariantForSlot(slotIndex, cardData, variantId) {
+    if (!cardData?.casaId || typeof slotIndex !== 'number') return
+    const variants = getHintVariantsForHouse(cardData.casaId)
+    const exists = variants.some(v => v.variantId === variantId)
+    if (!exists) return
+    activeHintVariantBySlot.set(slotIndex, variantId)
+}
+
+function pruneActiveHintVariantSelections() {
+    for (const [slotIndex, variantId] of activeHintVariantBySlot.entries()) {
+        const cardId = slotsState[slotIndex]
+        if (!cardId) {
+            activeHintVariantBySlot.delete(slotIndex)
+            continue
+        }
+        const cardData = hintCardsData.find(c => c.id === cardId)
+        if (!cardData?.casaId) {
+            activeHintVariantBySlot.delete(slotIndex)
+            continue
+        }
+        const variants = getHintVariantsForHouse(cardData.casaId)
+        const stillExists = variants.some(v => v.variantId === variantId)
+        if (!stillExists) {
+            activeHintVariantBySlot.delete(slotIndex)
+        }
+    }
+}
+
 function applySessionToHints(session) {
     hintCardsData = Array.isArray(session.deckPistas) ? session.deckPistas : []
+    hintVariantsByHouse.clear()
+    registerHintVariantsFromSession(session)
+    registerHintVariantsFromDeck(hintCardsData)
     applySlotsFromServer(session.slotsEnigmaFinal)
-    currentIndex = 0
-    updateDisplay()
-    updateButtons()
+    backfillSlotsFromDeck(hintCardsData)
+    hydrateActiveHintVariantsFromSession(session)
+    pruneActiveHintVariantSelections()
+    renderHintGrid()
+    syncUnreadRiddleHints({ initialize: !riddleReadStateInitialized })
+    updateFinalRiddleScript(session)
 }
 
 function upsertHintCard(carta) {
     if (!carta?.id) return
     const idx = hintCardsData.findIndex(c => c.id === carta.id)
-    if (idx >= 0) hintCardsData[idx] = carta
-    else hintCardsData.push(carta)
+    if (idx >= 0) {
+        registerHintVariant(hintCardsData[idx])
+        hintCardsData[idx] = carta
+    } else {
+        hintCardsData.push(carta)
+    }
+    registerHintVariant(carta)
+    pruneActiveHintVariantSelections()
 }
 
 // Initialize the display
 function init() {
-    updateDisplay()
-    updateButtons()
+    renderHintGrid()
     setupDragAndDrop()
 }
 
-// Update the visible cards
-function updateDisplay() {
-    // Filter out used cards
-    const availableCards = hintCardsData.filter(card => !usedCards.has(card.id))
+// Render the 4x2 hint grid
+function renderHintGrid() {
+    pruneActiveHintVariantSelections()
+    hintSlots.forEach((slotEl, index) => {
+        const cardId = slotsState[index]
+        slotEl.innerHTML = ''
+        slotEl.classList.remove('filled')
 
-    const visibleData = availableCards.slice(
-        currentIndex,
-        currentIndex + VISIBLE_CARDS
-    )
-
-    // Clear existing cards in container
-    cardsContainer.innerHTML = ''
-
-    // Create card elements for visible cards
-    visibleData.forEach(data => {
-        const cardEl = createCardElement(data)
-        cardsContainer.appendChild(cardEl)
+        if (cardId !== null) {
+            const cardData = hintCardsData.find(c => c.id === cardId)
+            if (cardData) {
+                const displayData =
+                    getActiveHintVariantForSlot(index, cardData) ||
+                    normalizeHintVariant(cardData) ||
+                    cardData
+                slotEl.classList.add('filled')
+                const cardEl = createHintCardElement(cardData, index, displayData)
+                slotEl.appendChild(cardEl)
+            }
+        }
     })
-
-    // Add placeholders if less than 3 visible
-    const placeholdersNeeded = VISIBLE_CARDS - visibleData.length
-    for (let i = 0; i < placeholdersNeeded; i++) {
-        const placeholder = document.createElement('div')
-        placeholder.className = 'hint-card is-placeholder'
-        placeholder.style.opacity = '0.3'
-        placeholder.style.transform = 'scale(0.9)'
-        placeholder.setAttribute('aria-hidden', 'true')
-        cardsContainer.appendChild(placeholder)
-    }
-
-    // Update slots display
-    updateSlotsDisplay()
 }
 
-// Create a card element
-function createCardElement(data, inSlot = false) {
+// Create a hint card element for the grid
+function createHintCardElement(data, slotIndex, displayData) {
     const cardEl = document.createElement('div')
     cardEl.className = 'hint-card'
     cardEl.draggable = !sessionData.isSpectator
@@ -1714,32 +2374,58 @@ function createCardElement(data, inSlot = false) {
     const img = document.createElement('img')
     img.className = 'hint-card-img'
     img.alt = 'Carta de pista'
-    img.src = resolveAssetUrl(data.source)
+    img.src = resolveAssetUrl(displayData?.source || data.source)
     cardEl.appendChild(img)
 
     cardEl.addEventListener('click', e => {
         if (draggedCardId) return
         e.stopPropagation()
+        const variantsRaw = getHintVariantsForHouse(data.casaId)
+        const fallbackVariant = normalizeHintVariant(data)
+        const variants = (variantsRaw.length ? variantsRaw : [fallbackVariant]).map(
+            (variant, index, all) => ({
+                ...variant,
+                frontSrc: resolveAssetUrl(variant.frontSource),
+                backSrc: resolveAssetUrl(variant.source),
+                label: getHintVariantLabel(variant, index, all.length)
+            })
+        )
+
+        const activeVariant =
+            getActiveHintVariantForSlot(slotIndex, data) || fallbackVariant
+
         openCardModal(
-            resolveAssetUrl(data.frontSource),
-            resolveAssetUrl(data.source),
-            true
+            resolveAssetUrl(activeVariant?.frontSource || data.frontSource),
+            resolveAssetUrl(activeVariant?.source || data.source),
+            true,
+            {
+                hintVariants: variants,
+                initialHintVariantId: activeVariant?.variantId,
+                canEquipHintVariant: !sessionData.isSpectator,
+                isHintVariantEquipped: variant =>
+                    getActiveHintVariantForSlot(slotIndex, data)?.variantId ===
+                    variant?.variantId,
+                onEquipHintVariant: variant => {
+                    if (sessionData.isSpectator) return
+                    setActiveHintVariantForSlot(
+                        slotIndex,
+                        data,
+                        variant.variantId
+                    )
+                    if (socket && socket.connected && sessionData?.sessionId) {
+                        socket.emit('equipar_pista_ativa_slot', {
+                            sessionId: sessionData.sessionId,
+                            jogadorId: sessionData.jogadorId,
+                            slotIndex,
+                            variantId: variant.variantId
+                        })
+                    }
+                    renderHintGrid()
+                    updateFinalRiddleScript(lastSession, { forceBurn: true })
+                }
+            }
         )
     })
-
-    // Add remove button if in slot
-    if (inSlot && !sessionData.isSpectator) {
-        const removeBtn = document.createElement('button')
-        removeBtn.type = 'button'
-        removeBtn.className = 'remove-btn'
-        removeBtn.setAttribute('aria-label', 'Remover carta do slot')
-        removeBtn.textContent = '\u00D7'
-        removeBtn.addEventListener('click', e => {
-            e.stopPropagation()
-            removeCardFromSlot(data.id)
-        })
-        cardEl.appendChild(removeBtn)
-    }
 
     // Add drag event listeners
     if (!sessionData.isSpectator) {
@@ -1750,76 +2436,18 @@ function createCardElement(data, inSlot = false) {
     return cardEl
 }
 
-// Update slots display
-function updateSlotsDisplay() {
-    slots.forEach((slot, index) => {
-        const cardId = slotsState[index]
-
-        // Clear slot
-        slot.innerHTML = ''
-        slot.classList.remove('filled')
-
-        if (cardId !== null) {
-            // Slot is filled
-            slot.classList.add('filled')
-            const cardData = hintCardsData.find(c => c.id === cardId)
-            if (cardData) {
-                const cardEl = createCardElement(cardData, true)
-                slot.appendChild(cardEl)
-            }
-        }
-    })
-}
-
-// Update button states
-function updateButtons() {
-    const availableCards = hintCardsData.filter(card => !usedCards.has(card.id))
-
-    // Disable up button if at the start
-    scrollUpBtn.disabled = currentIndex === 0
-
-    // Disable down button if at the end or no more cards
-    scrollDownBtn.disabled =
-        currentIndex >= availableCards.length - VISIBLE_CARDS
-}
-
-// Scroll up (show previous cards)
-function scrollUp() {
-    if (currentIndex > 0) {
-        currentIndex--
-        updateDisplay()
-        updateButtons()
-    }
-}
-
-// Scroll down (show next cards)
-function scrollDown() {
-    const availableCards = hintCardsData.filter(card => !usedCards.has(card.id))
-    if (currentIndex < availableCards.length - VISIBLE_CARDS) {
-        currentIndex++
-        updateDisplay()
-        updateButtons()
-    }
-}
-
-// Setup drag and drop
+// Setup drag and drop on hint grid slots
 function setupDragAndDrop() {
     if (sessionData.isSpectator) return
-    // Make slots droppable
-    slots.forEach(slot => {
-        slot.addEventListener('dragover', handleDragOver)
-        slot.addEventListener('drop', handleDrop)
-        slot.addEventListener('dragleave', handleDragLeave)
+    hintSlots.forEach(slotEl => {
+        slotEl.addEventListener('dragover', handleDragOver)
+        slotEl.addEventListener('drop', handleDrop)
+        slotEl.addEventListener('dragleave', handleDragLeave)
     })
-
-    // Make hint column droppable (for removing cards from slots)
-    cardsContainer.addEventListener('dragover', handleDragOver)
-    cardsContainer.addEventListener('drop', handleDropToColumn)
 }
 
 // Drag start handler
 function handleDragStart(e) {
-    // Block during event announcement
     if (isActionBlocked()) {
         e.preventDefault()
         return
@@ -1830,8 +2458,7 @@ function handleDragStart(e) {
 
     draggedCardId = cardEl.dataset.cardId
 
-    // Check if dragging from slot
-    const parentSlot = cardEl.closest('.slot')
+    const parentSlot = cardEl.closest('.hint-slot')
     if (parentSlot) {
         draggedFromSlot = parseInt(parentSlot.dataset.slotIndex)
     } else {
@@ -1850,12 +2477,10 @@ function handleDragEnd(e) {
         cardEl.classList.remove('dragging')
     }
 
-    // Clear drag state
     draggedCardId = null
     draggedFromSlot = null
 
-    // Remove all drag-over classes
-    slots.forEach(slot => slot.classList.remove('drag-over'))
+    hintSlots.forEach(s => s.classList.remove('drag-over'))
 }
 
 // Drag over handler
@@ -1863,74 +2488,45 @@ function handleDragOver(e) {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
 
-    const slot = e.target.closest('.slot')
-    if (slot) {
-        slot.classList.add('drag-over')
+    const slotEl = e.target.closest('.hint-slot')
+    if (slotEl) {
+        slotEl.classList.add('drag-over')
     }
 }
 
 // Drag leave handler
 function handleDragLeave(e) {
-    const slot = e.target.closest('.slot')
-    if (slot && !slot.contains(e.relatedTarget)) {
-        slot.classList.remove('drag-over')
+    const slotEl = e.target.closest('.hint-slot')
+    if (slotEl && !slotEl.contains(e.relatedTarget)) {
+        slotEl.classList.remove('drag-over')
     }
 }
 
-// Drop handler for slots
+// Drop handler — swap cards between slots
 function handleDrop(e) {
     if (sessionData.isSpectator) return
-    if (isActionBlocked()) return // Block during event announcement
+    if (isActionBlocked()) return
     e.preventDefault()
     e.stopPropagation()
 
-    const slot = e.target.closest('.slot')
-    if (!slot) return
+    const slotEl = e.target.closest('.hint-slot')
+    if (!slotEl) return
 
-    slot.classList.remove('drag-over')
+    slotEl.classList.remove('drag-over')
 
-    const targetSlotIndex = parseInt(slot.dataset.slotIndex)
+    const targetSlotIndex = parseInt(slotEl.dataset.slotIndex)
+    if (draggedFromSlot === targetSlotIndex) return // same slot, ignore
 
-    if (!socket || !sessionData.sessionId) return
+    if (!socket || !sessionData.sessionId || draggedCardId === null) return
+
     socket.emit('posicionar_pista_slot', {
         sessionId: sessionData.sessionId,
         jogadorId: sessionData.jogadorId,
         cardId: draggedCardId,
-        slotIndex: targetSlotIndex
+        slotIndex: targetSlotIndex,
+        fromSlotIndex: draggedFromSlot
     })
 }
-
-// Drop handler for column (remove from slot)
-function handleDropToColumn(e) {
-    if (sessionData.isSpectator) return
-    if (isActionBlocked()) return // Block during event announcement
-    e.preventDefault()
-    e.stopPropagation()
-
-    // Only process if dragging from a slot
-    if (draggedFromSlot !== null && draggedCardId !== null) {
-        removeCardFromSlot(draggedCardId)
-    }
-}
-
-// Remove card from slot
-function removeCardFromSlot(cardId) {
-    // Find slot index
-    const slotIndex = slotsState.findIndex(id => id === cardId)
-    if (slotIndex === -1) return
-
-    if (!socket || !sessionData.sessionId) return
-    socket.emit('remover_pista_slot', {
-        sessionId: sessionData.sessionId,
-        jogadorId: sessionData.jogadorId,
-        cardId,
-        slotIndex
-    })
-}
-
-// Event listeners
-scrollUpBtn.addEventListener('click', scrollUp)
-scrollDownBtn.addEventListener('click', scrollDown)
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {

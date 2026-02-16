@@ -28,11 +28,9 @@ body {
 
 .mestre-header {
     background-color: rgba(227, 220, 210, 0.95);
-    background-image: linear-gradient(
-        to bottom,
-        rgba(227, 220, 210, 0.98),
-        rgba(200, 190, 175, 0.98)
-    );
+    background-image: linear-gradient(to bottom,
+            rgba(227, 220, 210, 0.98),
+            rgba(200, 190, 175, 0.98));
     padding: 0.8rem 1.5rem;
     display: flex;
     justify-content: space-between;
@@ -309,10 +307,12 @@ body {
 }
 
 @keyframes phPulse {
+
     0%,
     100% {
         opacity: 1;
     }
+
     50% {
         opacity: 0.5;
     }
@@ -451,12 +451,10 @@ body {
     grid-template-rows: repeat(3, 1fr);
     gap: 0.5rem;
     padding: 1rem;
-    background: linear-gradient(
-        135deg,
-        rgba(26, 21, 16, 0.95) 0%,
-        rgba(42, 34, 26, 0.9) 50%,
-        rgba(26, 21, 16, 0.95) 100%
-    );
+    background: linear-gradient(135deg,
+            rgba(26, 21, 16, 0.95) 0%,
+            rgba(42, 34, 26, 0.9) 50%,
+            rgba(26, 21, 16, 0.95) 100%);
     border-radius: 12px;
     border: 2px solid rgba(166, 124, 0, 0.35);
     box-shadow:
@@ -590,6 +588,7 @@ body {
 }
 
 @keyframes mestre-pulse-glow {
+
     0%,
     100% {
         opacity: 0.3;
@@ -738,9 +737,19 @@ body {
     border-color: #b8a894;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
     background: #d7d0c6;
     border-color: #9a8a70;
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    color: #9a8a70;
+    background: #e3dcd2;
+    border-color: #c5b8a5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .btn-warning {
@@ -848,12 +857,15 @@ body {
 .log-entry.success {
     border-left-color: #5a7a50;
 }
+
 .log-entry.warning {
     border-left-color: #a67c00;
 }
+
 .log-entry.error {
     border-left-color: #8b3a3a;
 }
+
 .log-entry.info {
     border-left-color: #4a6a80;
 }
@@ -951,11 +963,9 @@ body {
    ===================================================== */
 
 .timer-panel {
-    background: linear-gradient(
-        135deg,
-        rgba(90, 122, 80, 0.15),
-        rgba(166, 124, 0, 0.15)
-    );
+    background: linear-gradient(135deg,
+            rgba(90, 122, 80, 0.15),
+            rgba(166, 124, 0, 0.15));
     border-color: rgba(90, 122, 80, 0.4);
 }
 
@@ -1040,10 +1050,12 @@ body {
    ===================================================== */
 
 @keyframes pulse {
+
     0%,
     100% {
         opacity: 1;
     }
+
     50% {
         opacity: 0.5;
     }
@@ -1058,6 +1070,7 @@ body {
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
