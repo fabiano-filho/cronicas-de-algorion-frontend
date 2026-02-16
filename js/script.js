@@ -718,21 +718,18 @@ function clearMermaidAbilitySelection() {
 }
 
 function requestMermaidHint(casaId, houseName) {
-    if (!pendingMermaidAbilityTarget) return
-    if (!sessionData?.sessionId || !sessionData?.jogadorId) {
+    if (!lastSession?.sereiaAbilityActive) return
+    if (!sessionData?.sessionId) {
         showToast('Sessão inválida.', 'error')
-        clearMermaidAbilitySelection()
         return
     }
     if (!socket || !socket.connected) {
         showToast('Sem conexão com o servidor.', 'error')
-        clearMermaidAbilitySelection()
         return
     }
 
-    socket.emit('usar_habilidade_heroi', {
+    socket.emit('selecionar_casa_sereia', {
         sessionId: sessionData.sessionId,
-        jogadorId: sessionData.jogadorId,
         casaId
     })
     const label = houseName || casaId
@@ -740,7 +737,6 @@ function requestMermaidHint(casaId, houseName) {
     showToast(`Sereia: sinal de dica solicitado para ${label}.`, 'info', {
         dedupeKey: 'sereia-ability'
     })
-    clearMermaidAbilitySelection()
 }
 
 function closeActionModal() {
@@ -1212,12 +1208,8 @@ function openHouseActionModalForHouse({ casaId, houseNum, houseName }) {
                     : `Você está em ${myPos || '?'}.`
 
     const actions = []
-    if (
-        pendingMermaidAbilityTarget &&
-        heroTipo === 'Sereia' &&
-        !heroAbilityUsed &&
-        revealed
-    ) {
+    // Sereia: opção de dica sutil visível para TODOS os jogadores quando a habilidade está ativa
+    if (lastSession?.sereiaAbilityActive && revealed) {
         actions.push({
             label: 'Sereia: pedir dica sutil para este desafio',
             disabled: !socket || !socket.connected,
@@ -1476,11 +1468,7 @@ function updateAbilityButtonFromSession(session) {
     )
     const heroTipo = myPlayer?.hero?.tipo || null
     setHeroCardTipo(heroTipo)
-    const mermaidSelectionActive =
-        heroTipo === 'Sereia' && pendingMermaidAbilityTarget
-    if (!mermaidSelectionActive) {
-        setAbilityStatus('')
-    }
+    setAbilityStatus('')
 
     const used = !!session?.habilidadesUsadasPorJogador?.[sessionData.jogadorId]
 
@@ -1493,7 +1481,11 @@ function updateAbilityButtonFromSession(session) {
         heroTipo === 'Humano' &&
         !used &&
         !!session?.movimentoGratisHeroiPorJogador?.[sessionData.jogadorId]
-    const abilityActive = anaoActive || humanoActive
+    const sereiaActive =
+        heroTipo === 'Sereia' &&
+        !used &&
+        session?.sereiaAbilityActive === sessionData.jogadorId
+    const abilityActive = anaoActive || humanoActive || sereiaActive
 
     let ruleBlockedReason = ''
     if (heroTipo === 'Humano' && !humanoActive) {
@@ -1544,11 +1536,6 @@ function updateAbilityButtonFromSession(session) {
     }
     if (!used && !abilityActive && ruleBlocked) {
         setAbilityStatus(ruleBlockedReason)
-    }
-    if (mermaidSelectionActive) {
-        setAbilityStatus(
-            'Sereia: clique em um desafio já revelado para enviar o sinal de dica sutil.'
-        )
     }
 }
 
@@ -1979,14 +1966,6 @@ if (btnUsarHabilidade) {
                 )
                 return
             }
-            if (pendingMermaidAbilityTarget) {
-                clearMermaidAbilitySelection()
-                setAbilityStatus('')
-                showToast('Seleção da habilidade da Sereia cancelada.', 'info')
-                return
-            }
-            startMermaidAbilitySelection()
-            return
         }
         if (heroTipo === 'Humano' && lastSession) {
             const custoMover = getMoveCostForPlayer(
