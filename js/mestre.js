@@ -455,7 +455,11 @@ function conectarServidor() {
             `Pedido de dica do enigma final recebido de ${jogadorNome}.`,
             'warning'
         )
-        showToast(`Pedido de dica do enigma final: ${jogadorNome}.`, 'warning')
+        showAlertModal({
+            title: '🔮 Pedido de Dica — Enigma Final',
+            message: `${jogadorNome} pediu uma dica para o enigma final.`,
+            confirmText: 'OK'
+        })
     })
 
     socket.on('jogo_finalizado', data => {
