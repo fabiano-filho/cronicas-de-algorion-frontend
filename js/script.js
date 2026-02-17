@@ -1668,6 +1668,18 @@ function conectarServidor() {
             )
             c5WaitToastShown = true
         }
+
+        // Restaurar tela de fim de jogo após refresh
+        if (session.jogoFinalizado && session.resultadoFinal) {
+            const overlay = document.getElementById('gameOverOverlay')
+            if (overlay && !overlay.classList.contains('active')) {
+                showGameOverOverlay(
+                    session.resultadoFinal,
+                    '',
+                    'Herança Diamante'
+                )
+            }
+        }
     })
 
     socket.on('desafio_carta5_obrigatorio', async data => {
@@ -1791,6 +1803,16 @@ function conectarServidor() {
         const mensagem = data?.mensagem || ''
         const respostaCorreta = data?.respostaCorreta || ''
         showGameOverOverlay(resultado, mensagem, respostaCorreta)
+    })
+
+    // PH esgotou: abrir enigma final automaticamente para todos
+    socket.on('forcar_desafio_final', data => {
+        showToast(
+            'PH esgotado! O enigma final está disponível.',
+            'warning',
+            { dedupeKey: 'forcar_final', durationMs: 6000 }
+        )
+        openRiddleOverlay()
     })
 
     socket.on('carta_pista_adicionada', ({ carta }) => {

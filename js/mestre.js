@@ -435,18 +435,14 @@ function conectarServidor() {
         showToast(`Desafio final iniciado por ${jogadorFinal}. Valide com ✅/❌`, 'warning')
     })
 
-    // Desafio final forçado (PH esgotado)
+    // Desafio final forçado (PH esgotado) — apenas notificar o mestre
     socket.on('forcar_desafio_final', data => {
-        gameState.desafioFinalAtual = {
-            motivo: 'ph_esgotado',
-            jogador: null,
-            textoEnigmaFinalMontado: data?.textoEnigmaFinalMontado || '',
-            slotsPreenchidos: false,
-            ph: 0
-        }
-        atualizarDesafioFinalUI()
-        addLog('PH esgotado: Desafio final deve ser respondido!', 'error')
-        showToast('PH esgotado! Desafio final deve ser respondido!', 'error')
+        addLog('PH esgotado: Enigma final iniciado! Aguardando resposta dos jogadores.', 'warning')
+        showAlertModal({
+            title: '⚠️ PH Esgotado — Enigma Final',
+            message: 'Os Pontos de História chegaram a 0. O enigma final foi aberto para os jogadores. Aguarde até que um jogador envie uma resposta para validação.',
+            confirmText: 'OK'
+        })
     })
 
     socket.on('pedido_dica_enigma_final', data => {
@@ -465,6 +461,7 @@ function conectarServidor() {
     socket.on('jogo_finalizado', async data => {
         gameState.desafioFinalAtual = null
         atualizarDesafioFinalUI()
+        gameState._gameOverShown = true
         const resultado = data?.resultado || 'derrota'
         const isVictory = resultado === 'vitoria'
         const msgFinal = data?.mensagem || 'Jogo finalizado'
@@ -606,6 +603,25 @@ function atualizarEstadoJogo(estado) {
             slotsPreenchidos: true,
             ph: estado.ph ?? 0
         }
+    }
+
+    // Restaurar tela de fim de jogo após refresh
+    if (estado?.jogoFinalizado && estado?.resultadoFinal && !gameState._gameOverShown) {
+        gameState._gameOverShown = true
+        const isVictory = estado.resultadoFinal === 'vitoria'
+        const title = isVictory
+            ? '👑 Vitória em Algorion!'
+            : '💀 As Sombras Prevalecem...'
+        const narrative = isVictory
+            ? 'O grupo desvendou o mistério da Herança Diamante! A jornada terminou com sucesso.'
+            : 'O grupo não conseguiu resolver o enigma final. A escuridão avança sobre Algorion.'
+        showAlertModal({
+            title,
+            message: `${narrative}\n\nResposta correta: Herança Diamante`,
+            confirmText: '🏠 Voltar à Tela Inicial'
+        }).then(() => {
+            window.location.href = './home.html'
+        })
     }
 
     atualizarUI()
