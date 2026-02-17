@@ -487,6 +487,21 @@ function conectarServidor() {
         addLog(`Habilidade usada: ${jogadorNome} (${heroi})`, 'info')
         showToast(`Habilidade usada: ${jogadorNome} (${heroi})`, 'info')
     })
+
+    // Sereia: modal para o mestre quando jogador pede dica sutil
+    socket.on('sinal_dica_sutil', data => {
+        const jogadorNome = data?.jogadorNome || 'Jogador'
+        const casaId = data?.casaId || '?'
+        addLog(
+            `Sereia: ${jogadorNome} pediu dica sutil para o enigma da casa ${casaId}`,
+            'info'
+        )
+        showAlertModal({
+            title: '🧜‍♀️ Sereia — Pedido de Dica Sutil',
+            message: `${jogadorNome} pediu uma dica sutil para o enigma da casa ${casaId}.`,
+            confirmText: 'OK'
+        })
+    })
 }
 
 // =====================================================
