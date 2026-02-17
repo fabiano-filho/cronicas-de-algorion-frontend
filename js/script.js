@@ -1785,6 +1785,14 @@ function conectarServidor() {
         )
     })
 
+    // Game Over overlay
+    socket.on('jogo_finalizado', data => {
+        const resultado = data?.resultado || 'derrota'
+        const mensagem = data?.mensagem || ''
+        const respostaCorreta = data?.respostaCorreta || ''
+        showGameOverOverlay(resultado, mensagem, respostaCorreta)
+    })
+
     socket.on('carta_pista_adicionada', ({ carta }) => {
         upsertHintCard(carta)
         backfillSlotsFromDeck(hintCardsData)
@@ -2448,6 +2456,90 @@ function handleDrop(e) {
 }
 
 // Initialize on page load
+// =====================================================
+// GAME OVER OVERLAY
+// =====================================================
+function showGameOverOverlay(resultado, mensagem, respostaCorreta) {
+    const overlay = document.getElementById('gameOverOverlay')
+    const iconEl = document.getElementById('gameOverIcon')
+    const titleEl = document.getElementById('gameOverTitle')
+    const narrativeEl = document.getElementById('gameOverNarrative')
+    const answerEl = document.getElementById('gameOverAnswer')
+    const btnVoltar = document.getElementById('btnVoltarInicio')
+    const particlesEl = document.getElementById('gameOverParticles')
+    if (!overlay) return
+
+    const isVictory = resultado === 'vitoria'
+
+    // Set variant class
+    overlay.classList.remove('victory', 'defeat')
+    overlay.classList.add(isVictory ? 'victory' : 'defeat')
+
+    // Icon
+    iconEl.textContent = isVictory ? '👑' : '💀'
+
+    // Title
+    titleEl.textContent = isVictory
+        ? 'Vitória em Algorion!'
+        : 'As Sombras Prevalecem...'
+
+    // Narrative text with story flavor
+    if (isVictory) {
+        narrativeEl.textContent =
+            'Os heróis desvendaram os segredos ocultos de Algorion! ' +
+            'Com sabedoria e coragem, o grupo identificou o padrão ' +
+            'que ameaçava o reino — a Herança Diamante foi revelada ' +
+            'e o equilíbrio foi restaurado. As crônicas registrarão ' +
+            'esta jornada para sempre.'
+    } else {
+        narrativeEl.textContent =
+            'As sombras se adensam sobre Algorion... Os heróis ' +
+            'não conseguiram desvendar o mistério a tempo. O padrão ' +
+            'oculto permanece selado nas profundezas do reino, e a ' +
+            'escuridão avança. Talvez uma nova jornada possa ' +
+            'reescrever o destino destas terras.'
+    }
+
+    // Answer
+    if (respostaCorreta) {
+        answerEl.textContent = isVictory
+            ? `A resposta era: ${respostaCorreta}`
+            : `A resposta correta era: ${respostaCorreta}`
+    } else {
+        answerEl.textContent = ''
+    }
+
+    // Create floating particles
+    particlesEl.innerHTML = ''
+    const particleColor = isVictory
+        ? 'rgba(255, 215, 0, 0.6)'
+        : 'rgba(220, 60, 60, 0.5)'
+    for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div')
+        p.className = 'game-over-particle'
+        const size = 4 + Math.random() * 8
+        p.style.width = size + 'px'
+        p.style.height = size + 'px'
+        p.style.background = particleColor
+        p.style.left = Math.random() * 100 + '%'
+        p.style.bottom = '-10px'
+        p.style.animationDelay = Math.random() * 4 + 's'
+        p.style.animationDuration = 3 + Math.random() * 3 + 's'
+        particlesEl.appendChild(p)
+    }
+
+    // Button action
+    btnVoltar.onclick = () => {
+        window.location.href = './home.html'
+    }
+
+    // Show overlay with animation
+    overlay.classList.remove('hidden')
+    requestAnimationFrame(() => {
+        overlay.classList.add('active')
+    })
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const ok = carregarSessaoLocal()
     if (!ok) {

@@ -462,13 +462,32 @@ function conectarServidor() {
         })
     })
 
-    socket.on('jogo_finalizado', data => {
+    socket.on('jogo_finalizado', async data => {
         gameState.desafioFinalAtual = null
         atualizarDesafioFinalUI()
+        const resultado = data?.resultado || 'derrota'
+        const isVictory = resultado === 'vitoria'
         const msgFinal = data?.mensagem || 'Jogo finalizado'
-        const variantFinal = data?.resultado === 'vitoria' ? 'success' : 'error'
+        const respostaCorreta = data?.respostaCorreta || ''
+        const variantFinal = isVictory ? 'success' : 'error'
         addLog(msgFinal, variantFinal)
-        showToast(msgFinal, variantFinal)
+
+        const title = isVictory
+            ? '👑 Vitória em Algorion!'
+            : '💀 As Sombras Prevalecem...'
+        const narrative = isVictory
+            ? 'O grupo desvendou o mistério da Herança Diamante! A jornada terminou com sucesso.'
+            : 'O grupo não conseguiu resolver o enigma final. A escuridão avança sobre Algorion.'
+        const answerLine = respostaCorreta
+            ? `\n\nResposta correta: ${respostaCorreta}`
+            : ''
+
+        await showAlertModal({
+            title,
+            message: `${narrative}${answerLine}`,
+            confirmText: '🏠 Voltar à Tela Inicial'
+        })
+        window.location.href = './home.html'
     })
 
     // Habilidades em tempo real

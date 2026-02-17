@@ -1,471 +1,306 @@
 <!doctype html>
 <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Crônicas de Algorion — Tabuleiro</title>
-        <meta
-            name="description"
-            content="Tabuleiro de Crônicas de Algorion — jogo cooperativo de enigmas e aventura."
-        />
-        <meta name="theme-color" content="#1a1a1a" />
-        <link rel="stylesheet" href="../css/game.css" />
-        <link rel="stylesheet" href="../css/ui-feedback.css" />
-    </head>
 
-    <body>
-        <noscript>
-            Para jogar Crônicas de Algorion, ative o JavaScript no seu
-            navegador.
-        </noscript>
-        <!-- Game Header -->
-        <header class="game-header">
-            <h1 class="game-title">Crônicas de Algorion</h1>
-            <div class="header-actions">
-                <div class="story-points">
-                    <span class="story-points-icon" aria-hidden="true">⚡</span>
-                    <span class="story-points-value" id="storyPointsValue"
-                        >40</span
-                    >
-                    <span class="story-points-label">PH</span>
-                </div>
-                <button id="btnSairSessao" class="btn-leave" type="button">
-                    🚪 Sair
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crônicas de Algorion — Tabuleiro</title>
+    <meta name="description" content="Tabuleiro de Crônicas de Algorion — jogo cooperativo de enigmas e aventura." />
+    <meta name="theme-color" content="#1a1a1a" />
+    <link rel="stylesheet" href="../css/game.css" />
+    <link rel="stylesheet" href="../css/ui-feedback.css" />
+</head>
+
+<body>
+    <noscript>
+        Para jogar Crônicas de Algorion, ative o JavaScript no seu
+        navegador.
+    </noscript>
+    <!-- Game Header -->
+    <header class="game-header">
+        <h1 class="game-title">Crônicas de Algorion</h1>
+        <div class="header-actions">
+            <div class="story-points">
+                <span class="story-points-icon" aria-hidden="true">⚡</span>
+                <span class="story-points-value" id="storyPointsValue">40</span>
+                <span class="story-points-label">PH</span>
+            </div>
+            <button id="btnSairSessao" class="btn-leave" type="button">
+                🚪 Sair
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="game-container" id="main">
+        <!-- Left Column: Hint Grid -->
+        <div class="hint-column">
+            <div class="hint-column-header">
+                <span class="hint-column-title">Pistas</span>
+                <button id="btnAbrirEnigmaOverlay" class="riddle-overlay-trigger" type="button" aria-haspopup="dialog"
+                    aria-controls="riddleOverlay" aria-label="Ver enigma">
+                    <span class="riddle-overlay-trigger-icon" aria-hidden="true"></span>
+                    <span class="riddle-overlay-trigger-label">Ver enigma</span>
+                    <span class="riddle-overlay-trigger-badge" aria-hidden="true"></span>
                 </button>
             </div>
-        </header>
 
-        <!-- Main Game Area -->
-        <main class="game-container" id="main">
-            <!-- Left Column: Hint Grid -->
-            <div class="hint-column">
-                <div class="hint-column-header">
-                    <span class="hint-column-title">Pistas</span>
-                    <button
-                        id="btnAbrirEnigmaOverlay"
-                        class="riddle-overlay-trigger"
-                        type="button"
-                        aria-haspopup="dialog"
-                        aria-controls="riddleOverlay"
-                        aria-label="Ver enigma"
-                    >
-                        <span
-                            class="riddle-overlay-trigger-icon"
-                            aria-hidden="true"
-                        ></span>
-                        <span class="riddle-overlay-trigger-label"
-                            >Ver enigma</span
-                        >
-                        <span
-                            class="riddle-overlay-trigger-badge"
-                            aria-hidden="true"
-                        ></span>
+            <div class="hint-grid-row">
+                <div class="hint-grid" id="hintGrid">
+                    <div class="hint-slot" data-slot-index="0"></div>
+                    <div class="hint-slot" data-slot-index="1"></div>
+                    <div class="hint-slot" data-slot-index="2"></div>
+                    <div class="hint-slot" data-slot-index="3"></div>
+                    <div class="hint-slot" data-slot-index="4"></div>
+                    <div class="hint-slot" data-slot-index="5"></div>
+                    <div class="hint-slot" data-slot-index="6"></div>
+                    <div class="hint-slot" data-slot-index="7"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Central Board -->
+        <div class="main-container">
+            <!-- 3x3 Board Grid -->
+            <div class="board-grid">
+                <!-- House Card 1 - C1 Biblioteca -->
+                <div class="house-card" data-house-id="1" data-house-name="Biblioteca">
+                    <div class="house-card-inner">
+                        <div class="house-card-front">
+                            <img src="../assets/cards/houses/1-front.png" alt="Casa 1 - Biblioteca" />
+                        </div>
+                        <div class="house-card-back">
+                            <img src="../assets/cards/houses/1-back.png" alt="Casa 1 - Verso" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- House Card 2 - C2 Masmorra -->
+                <div class="house-card" data-house-id="2" data-house-name="Masmorra">
+                    <div class="house-card-inner">
+                        <div class="house-card-front">
+                            <img src="../assets/cards/houses/2-front.png" alt="Casa 2 - Masmorra" />
+                        </div>
+                        <div class="house-card-back">
+                            <img src="../assets/cards/houses/2-back.png" alt="Casa 2 - Verso" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- House Card 3 - C3 Jardim -->
+                <div class="house-card" data-house-id="3" data-house-name="Jardim">
+                    <div class="house-card-inner">
+                        <div class="house-card-front">
+                            <img src="../assets/cards/houses/3-front.png" alt="Casa 3 - Jardim" />
+                        </div>
+                        <div class="house-card-back">
+                            <img src="../assets/cards/houses/3-back.png" alt="Casa 3 - Verso" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- House Card 4 - C4 Mercado -->
+                <div class="house-card" data-house-id="4" data-house-name="Mercado">
+                    <div class="house-card-inner">
+                        <div class="house-card-front">
+                            <img src="../assets/cards/houses/4-front.png" alt="Casa 4 - Mercado" />
+                        </div>
+                        <div class="house-card-back">
+                            <img src="../assets/cards/houses/4-back.png" alt="Casa 4 - Verso" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- House Card 5 - C5 Bosque (Central - Início) -->
+                <div class="house-card" data-house-id="5" data-house-name="Bosque">
+                    <div class="house-card-inner">
+                        <div class="house-card-front">
+                            <img src="../assets/cards/houses/5-front.png" alt="Casa 5 - Bosque" />
+                        </div>
+                        <div class="house-card-back">
+                            <img src="../assets/cards/houses/5-back.png" alt="Casa 5 - Verso" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- House Card 6 - C6 Arena -->
+                <div class="house-card" data-house-id="6" data-house-name="Arena">
+                    <div class="house-card-inner">
+                        <div class="house-card-front">
+                            <img src="../assets/cards/houses/6-front.png" alt="Casa 6 - Arena" />
+                        </div>
+                        <div class="house-card-back">
+                            <img src="../assets/cards/houses/6-back.png" alt="Casa 6 - Verso" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- House Card 7 - C7 Deserto -->
+                <div class="house-card" data-house-id="7" data-house-name="Deserto">
+                    <div class="house-card-inner">
+                        <div class="house-card-front">
+                            <img src="../assets/cards/houses/7-front.png" alt="Casa 7 - Deserto" />
+                        </div>
+                        <div class="house-card-back">
+                            <img src="../assets/cards/houses/7-back.png" alt="Casa 7 - Verso" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- House Card 8 - C8 Castelo -->
+                <div class="house-card" data-house-id="8" data-house-name="Castelo">
+                    <div class="house-card-inner">
+                        <div class="house-card-front">
+                            <img src="../assets/cards/houses/8-front.png" alt="Casa 8 - Castelo" />
+                        </div>
+                        <div class="house-card-back">
+                            <img src="../assets/cards/houses/8-back.png" alt="Casa 8 - Verso" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- House Card 9 - C9 Montanha -->
+                <div class="house-card" data-house-id="9" data-house-name="Montanha">
+                    <div class="house-card-inner">
+                        <div class="house-card-front">
+                            <img src="../assets/cards/houses/9-front.png" alt="Casa 9 - Montanha" />
+                        </div>
+                        <div class="house-card-back">
+                            <img src="../assets/cards/houses/9-back.png" alt="Casa 9 - Verso" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Status -->
+            <div class="game-status">
+                <span class="round-display">Rodada<strong>1</strong></span>
+                <span class="turn-display">Vez de<strong>Jogador 1</strong></span>
+                <span class="player-positions" id="playerPositions"></span>
+            </div>
+        </div>
+
+        <!-- Right Column: Events & Hero -->
+        <div class="right-panel">
+            <!-- Event Card Area -->
+            <div class="event-card-area">
+                <div class="event-card-flip" id="eventCard">
+                    <div class="event-card-inner">
+                        <div class="event-card-front">
+                            <img src="../assets/cards/events/front-event.png" alt="Carta de Evento" />
+                        </div>
+                        <div class="event-card-back">
+                            <img src="../assets/cards/events/front-event.png" alt="Verso do evento" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Card Area -->
+            <div class="hero-card-area">
+                <div class="hero-card-flip" id="heroCard">
+                    <div class="hero-card-inner">
+                        <div class="hero-card-front">
+                            <img src="../assets/cards/characteres/front-human-character.png" alt="Frente - Humano" />
+                        </div>
+                        <div class="hero-card-back">
+                            <img src="../assets/cards/characteres/back-human-character.png" alt="Verso - Humano" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-actions">
+                    <button id="btnUsarHabilidade" class="hero-ability-btn" type="button">
+                        Usar habilidade
                     </button>
-                </div>
-
-                <div class="hint-grid-row">
-                    <div class="hint-grid" id="hintGrid">
-                        <div class="hint-slot" data-slot-index="0"></div>
-                        <div class="hint-slot" data-slot-index="1"></div>
-                        <div class="hint-slot" data-slot-index="2"></div>
-                        <div class="hint-slot" data-slot-index="3"></div>
-                        <div class="hint-slot" data-slot-index="4"></div>
-                        <div class="hint-slot" data-slot-index="5"></div>
-                        <div class="hint-slot" data-slot-index="6"></div>
-                        <div class="hint-slot" data-slot-index="7"></div>
-                    </div>
-
+                    <div id="heroAbilityStatus" class="hero-ability-status"></div>
                 </div>
             </div>
+        </div>
+    </main>
 
-            <!-- Central Board -->
-            <div class="main-container">
-                <!-- 3x3 Board Grid -->
-                <div class="board-grid">
-                    <!-- House Card 1 - C1 Biblioteca -->
-                    <div
-                        class="house-card"
-                        data-house-id="1"
-                        data-house-name="Biblioteca"
-                    >
-                        <div class="house-card-inner">
-                            <div class="house-card-front">
-                                <img
-                                    src="../assets/cards/houses/1-front.png"
-                                    alt="Casa 1 - Biblioteca"
-                                />
-                            </div>
-                            <div class="house-card-back">
-                                <img
-                                    src="../assets/cards/houses/1-back.png"
-                                    alt="Casa 1 - Verso"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- House Card 2 - C2 Masmorra -->
-                    <div
-                        class="house-card"
-                        data-house-id="2"
-                        data-house-name="Masmorra"
-                    >
-                        <div class="house-card-inner">
-                            <div class="house-card-front">
-                                <img
-                                    src="../assets/cards/houses/2-front.png"
-                                    alt="Casa 2 - Masmorra"
-                                />
-                            </div>
-                            <div class="house-card-back">
-                                <img
-                                    src="../assets/cards/houses/2-back.png"
-                                    alt="Casa 2 - Verso"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- House Card 3 - C3 Jardim -->
-                    <div
-                        class="house-card"
-                        data-house-id="3"
-                        data-house-name="Jardim"
-                    >
-                        <div class="house-card-inner">
-                            <div class="house-card-front">
-                                <img
-                                    src="../assets/cards/houses/3-front.png"
-                                    alt="Casa 3 - Jardim"
-                                />
-                            </div>
-                            <div class="house-card-back">
-                                <img
-                                    src="../assets/cards/houses/3-back.png"
-                                    alt="Casa 3 - Verso"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- House Card 4 - C4 Mercado -->
-                    <div
-                        class="house-card"
-                        data-house-id="4"
-                        data-house-name="Mercado"
-                    >
-                        <div class="house-card-inner">
-                            <div class="house-card-front">
-                                <img
-                                    src="../assets/cards/houses/4-front.png"
-                                    alt="Casa 4 - Mercado"
-                                />
-                            </div>
-                            <div class="house-card-back">
-                                <img
-                                    src="../assets/cards/houses/4-back.png"
-                                    alt="Casa 4 - Verso"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- House Card 5 - C5 Bosque (Central - Início) -->
-                    <div
-                        class="house-card"
-                        data-house-id="5"
-                        data-house-name="Bosque"
-                    >
-                        <div class="house-card-inner">
-                            <div class="house-card-front">
-                                <img
-                                    src="../assets/cards/houses/5-front.png"
-                                    alt="Casa 5 - Bosque"
-                                />
-                            </div>
-                            <div class="house-card-back">
-                                <img
-                                    src="../assets/cards/houses/5-back.png"
-                                    alt="Casa 5 - Verso"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- House Card 6 - C6 Arena -->
-                    <div
-                        class="house-card"
-                        data-house-id="6"
-                        data-house-name="Arena"
-                    >
-                        <div class="house-card-inner">
-                            <div class="house-card-front">
-                                <img
-                                    src="../assets/cards/houses/6-front.png"
-                                    alt="Casa 6 - Arena"
-                                />
-                            </div>
-                            <div class="house-card-back">
-                                <img
-                                    src="../assets/cards/houses/6-back.png"
-                                    alt="Casa 6 - Verso"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- House Card 7 - C7 Deserto -->
-                    <div
-                        class="house-card"
-                        data-house-id="7"
-                        data-house-name="Deserto"
-                    >
-                        <div class="house-card-inner">
-                            <div class="house-card-front">
-                                <img
-                                    src="../assets/cards/houses/7-front.png"
-                                    alt="Casa 7 - Deserto"
-                                />
-                            </div>
-                            <div class="house-card-back">
-                                <img
-                                    src="../assets/cards/houses/7-back.png"
-                                    alt="Casa 7 - Verso"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- House Card 8 - C8 Castelo -->
-                    <div
-                        class="house-card"
-                        data-house-id="8"
-                        data-house-name="Castelo"
-                    >
-                        <div class="house-card-inner">
-                            <div class="house-card-front">
-                                <img
-                                    src="../assets/cards/houses/8-front.png"
-                                    alt="Casa 8 - Castelo"
-                                />
-                            </div>
-                            <div class="house-card-back">
-                                <img
-                                    src="../assets/cards/houses/8-back.png"
-                                    alt="Casa 8 - Verso"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- House Card 9 - C9 Montanha -->
-                    <div
-                        class="house-card"
-                        data-house-id="9"
-                        data-house-name="Montanha"
-                    >
-                        <div class="house-card-inner">
-                            <div class="house-card-front">
-                                <img
-                                    src="../assets/cards/houses/9-front.png"
-                                    alt="Casa 9 - Montanha"
-                                />
-                            </div>
-                            <div class="house-card-back">
-                                <img
-                                    src="../assets/cards/houses/9-back.png"
-                                    alt="Casa 9 - Verso"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Game Status -->
-                <div class="game-status">
-                    <span class="round-display">Rodada<strong>1</strong></span>
-                    <span class="turn-display"
-                        >Vez de<strong>Jogador 1</strong></span
-                    >
-                    <span class="player-positions" id="playerPositions"></span>
-                </div>
+    <!-- Card Inspection Modal -->
+    <div id="cardModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Inspecionar carta">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose" type="button" aria-label="Fechar">
+                &times;
+            </button>
+            <div class="modal-card-container" id="modalCardContainer">
+                <!-- Content injected via JS -->
             </div>
+        </div>
+    </div>
 
-            <!-- Right Column: Events & Hero -->
-            <div class="right-panel">
-                <!-- Event Card Area -->
-                <div class="event-card-area">
-                    <div class="event-card-flip" id="eventCard">
-                        <div class="event-card-inner">
-                            <div class="event-card-front">
-                                <img
-                                    src="../assets/cards/events/front-event.png"
-                                    alt="Carta de Evento"
-                                />
-                            </div>
-                            <div class="event-card-back">
-                                <img
-                                    src="../assets/cards/events/front-event.png"
-                                    alt="Verso do evento"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <!-- House Actions Modal -->
+    <div id="actionModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Ações da casa">
+        <div class="modal-content modal-content-actions">
+            <button class="modal-close" id="actionModalClose" type="button" aria-label="Fechar">
+                &times;
+            </button>
+            <h3 id="actionTitle" class="action-title"></h3>
+            <div id="actionBody" class="action-body"></div>
+        </div>
+    </div>
 
-                <!-- Hero Card Area -->
-                <div class="hero-card-area">
-                    <div class="hero-card-flip" id="heroCard">
-                        <div class="hero-card-inner">
-                            <div class="hero-card-front">
-                                <img
-                                    src="../assets/cards/characteres/front-human-character.png"
-                                    alt="Frente - Humano"
-                                />
-                            </div>
-                            <div class="hero-card-back">
-                                <img
-                                    src="../assets/cards/characteres/back-human-character.png"
-                                    alt="Verso - Humano"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="hero-actions">
-                        <button
-                            id="btnUsarHabilidade"
-                            class="hero-ability-btn"
-                            type="button"
-                        >
-                            Usar habilidade
-                        </button>
-                        <div
-                            id="heroAbilityStatus"
-                            class="hero-ability-status"
-                        ></div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Card Inspection Modal -->
-        <div
-            id="cardModal"
-            class="modal-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Inspecionar carta"
-        >
-            <div class="modal-content">
-                <button
-                    class="modal-close"
-                    id="modalClose"
-                    type="button"
-                    aria-label="Fechar"
-                >
-                    &times;
+    <div id="riddleOverlay" class="riddle-overlay" role="dialog" aria-modal="true" aria-labelledby="riddleOverlayTitle">
+        <div class="riddle-overlay-panel">
+            <button id="btnFecharEnigmaOverlay" class="riddle-overlay-close" type="button" aria-label="Fechar">
+                &times;
+            </button>
+            <p class="riddle-overlay-kicker">Fragmento do enigma final</p>
+            <h2 id="riddleOverlayTitle" class="riddle-overlay-title">
+                Escrita antiga
+            </h2>
+            <div id="riddleOverlayText" class="riddle-overlay-text" aria-live="polite"></div>
+            <div class="riddle-overlay-actions">
+                <button id="btnPedirDicaEnigmaFinal" class="final-riddle-btn final-riddle-btn-secondary" type="button"
+                    disabled>
+                    Pedir dica ao Mestre
                 </button>
-                <div class="modal-card-container" id="modalCardContainer">
-                    <!-- Content injected via JS -->
-                </div>
-            </div>
-        </div>
-
-        <!-- House Actions Modal -->
-        <div
-            id="actionModal"
-            class="modal-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Ações da casa"
-        >
-            <div class="modal-content modal-content-actions">
-                <button
-                    class="modal-close"
-                    id="actionModalClose"
-                    type="button"
-                    aria-label="Fechar"
-                >
-                    &times;
+                <button id="btnResponderEnigmaFinal" class="final-riddle-btn" type="button" disabled>
+                    Responder enigma final
                 </button>
-                <h3 id="actionTitle" class="action-title"></h3>
-                <div id="actionBody" class="action-body"></div>
             </div>
         </div>
+    </div>
 
-        <div
-            id="riddleOverlay"
-            class="riddle-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="riddleOverlayTitle"
-        >
-            <div class="riddle-overlay-panel">
-                <button
-                    id="btnFecharEnigmaOverlay"
-                    class="riddle-overlay-close"
-                    type="button"
-                    aria-label="Fechar"
-                >
-                    &times;
-                </button>
-                <p class="riddle-overlay-kicker">Fragmento do enigma final</p>
-                <h2 id="riddleOverlayTitle" class="riddle-overlay-title">
-                    Escrita antiga
-                </h2>
-                <div
-                    id="riddleOverlayText"
-                    class="riddle-overlay-text"
-                    aria-live="polite"
-                ></div>
-                <div class="riddle-overlay-actions">
-                    <button
-                        id="btnPedirDicaEnigmaFinal"
-                        class="final-riddle-btn final-riddle-btn-secondary"
-                        type="button"
-                        disabled
-                    >
-                        Pedir dica ao Mestre
-                    </button>
-                    <button
-                        id="btnResponderEnigmaFinal"
-                        class="final-riddle-btn"
-                        type="button"
-                        disabled
-                    >
-                        Responder enigma final
-                    </button>
-                </div>
-            </div>
+    <!-- Event Announcement Overlay (Street Fighter Style) -->
+    <div id="eventAnnouncementOverlay" class="event-announcement-overlay" aria-live="assertive">
+        <div class="event-announcement-flash"></div>
+        <div class="event-announcement-sparks" id="eventSparks"></div>
+        <div class="event-announcement-content">
+            <div class="event-announcement-line top"></div>
+            <span class="event-announcement-label">Evento da Rodada</span>
+            <h2 class="event-announcement-name" id="eventAnnouncementName">
+                —
+            </h2>
+            <div class="event-announcement-line bottom"></div>
+            <p class="event-announcement-description" id="eventAnnouncementDesc"></p>
         </div>
+    </div>
 
-        <!-- Event Announcement Overlay (Street Fighter Style) -->
-        <div
-            id="eventAnnouncementOverlay"
-            class="event-announcement-overlay"
-            aria-live="assertive"
-        >
-            <div class="event-announcement-flash"></div>
-            <div class="event-announcement-sparks" id="eventSparks"></div>
-            <div class="event-announcement-content">
-                <div class="event-announcement-line top"></div>
-                <span class="event-announcement-label">Evento da Rodada</span>
-                <h2 class="event-announcement-name" id="eventAnnouncementName">
-                    —
-                </h2>
-                <div class="event-announcement-line bottom"></div>
-                <p
-                    class="event-announcement-description"
-                    id="eventAnnouncementDesc"
-                ></p>
-            </div>
+
+    <!-- Game Over Overlay -->
+    <div id="gameOverOverlay" class="game-over-overlay hidden" role="dialog" aria-modal="true"
+        aria-labelledby="gameOverTitle">
+        <div class="game-over-particles" id="gameOverParticles"></div>
+        <div class="game-over-content">
+            <div class="game-over-icon" id="gameOverIcon"></div>
+            <h2 class="game-over-title" id="gameOverTitle"></h2>
+            <p class="game-over-narrative" id="gameOverNarrative"></p>
+            <div class="game-over-answer" id="gameOverAnswer"></div>
+            <button id="btnVoltarInicio" class="game-over-btn" type="button">
+                🏠 Voltar à Tela Inicial
+            </button>
         </div>
+    </div>
 
-        <script src="../js/env.js"></script>
-        <script src="../js/config.js"></script>
-        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-        <script src="../js/ui/feedback.js"></script>
-        <script src="../js/script.js"></script>
-    </body>
+    <script src="../js/env.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="../js/ui/feedback.js"></script>
+    <script src="../js/script.js"></script>
+</body>
+
 </html>
