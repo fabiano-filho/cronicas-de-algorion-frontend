@@ -1219,6 +1219,26 @@ function openHouseActionModalForHouse({ casaId, houseNum, houseName }) {
             }
         })
     }
+    // Bruxa: opção de ver custo visível APENAS para o jogador Bruxa quando a habilidade está ativa
+    if (
+        lastSession?.bruxaAbilityActive === sessionData.jogadorId &&
+        (lastSession?.bruxaUsosRestantes ?? 0) > 0 &&
+        !revealed &&
+        casaId !== 'C5'
+    ) {
+        actions.push({
+            label: `Bruxa: ver custo desta casa (${lastSession.bruxaUsosRestantes} restante${lastSession.bruxaUsosRestantes !== 1 ? 's' : ''})`,
+            disabled: !socket || !socket.connected,
+            onClick: () => {
+                socket.emit('bruxa_revelar_custo_casa', {
+                    sessionId: sessionData.sessionId,
+                    jogadorId: sessionData.jogadorId,
+                    casaId
+                })
+                closeActionModal()
+            }
+        })
+    }
     const displayTitle = revealed ? `${resolvedHouseName} (${casaId})` : ''
     const explorarCost = getConfiguredActionCost(lastSession, 'explorar', 1)
     const explorarNovamenteCost = getConfiguredActionCost(
@@ -1382,8 +1402,10 @@ function getAbilityHint(tipo) {
             return 'Próximo enigma: -1 PH.'
         case 'Sereia':
             return 'Sinal de dica sutil enviado.'
-        case 'Bruxa':
-            return 'Revelando custos de cartas ocultas...'
+        case 'Bruxa': {
+            const restantes = lastSession?.bruxaUsosRestantes ?? 0
+            return `Revelando custos (${restantes} restante${restantes !== 1 ? 's' : ''}).`
+        }
         default:
             return ''
     }
@@ -1485,7 +1507,11 @@ function updateAbilityButtonFromSession(session) {
         heroTipo === 'Sereia' &&
         !used &&
         session?.sereiaAbilityActive === sessionData.jogadorId
-    const abilityActive = anaoActive || humanoActive || sereiaActive
+    const bruxaActive =
+        heroTipo === 'Bruxa' &&
+        !used &&
+        session?.bruxaAbilityActive === sessionData.jogadorId
+    const abilityActive = anaoActive || humanoActive || sereiaActive || bruxaActive
 
     let ruleBlockedReason = ''
     if (heroTipo === 'Humano' && !humanoActive) {
@@ -1749,100 +1775,14 @@ function conectarServidor() {
         })
     })
 
-    socket.on('custos_cartas_revelados', async data => {
-        if (data?.jogadorId !== sessionData.jogadorId) return
-        const cartas = Array.isArray(data?.cartas) ? data.cartas : []
-        if (!cartas.length) {
-            showToast('Bruxa: nenhuma carta oculta para revelar agora.', 'info')
-            return
-        }
-        const items = cartas.map(
-            c => `Carta ${c.id}: custo do enigma ${c.custoExploracao}`
+    socket.on('custo_casa_revelado', data => {
+        const casaId = data?.casaId || '?'
+        const custo = data?.custoExploracao ?? '?'
+        const jogadorNome = data?.jogadorNome || 'Bruxa'
+        showToast(
+            `${jogadorNome} (Bruxa) revelou: casa ${casaId} custa ${custo} PH para explorar.`,
+            'info'
         )
-        await showAlertModal({
-            title: 'Bruxa: custos revelados',
-            message: 'Confira os custos das cartas ocultas:',
-            items,
-            confirmText: 'Fechar'
-        })
-        setAbilityStatus('Bruxa: custos revelados.')
-    })
-
-    // Bruxa: jogador escolhe quais cartas ocultas quer ver o custo
-    socket.on('bruxa_escolher_cartas', data => {
-        const opcoes = Array.isArray(data?.opcoes) ? data.opcoes : []
-        if (!opcoes.length) {
-            showToast('Bruxa: nenhuma carta oculta disponível agora.', 'info')
-            return
-        }
-
-        const ids = opcoes
-            .map(o => String(o?.id || ''))
-            .filter(Boolean)
-            .sort()
-
-        const escolhas = []
-
-        const abrirSelecao = () => {
-            const restantes = ids.filter(id => !escolhas.includes(id))
-            if (!restantes.length) {
-                return
-            }
-
-            openActionModal({
-                title:
-                    escolhas.length === 0
-                        ? 'Bruxa: escolha a 1ª carta'
-                        : 'Bruxa: escolha a 2ª carta (opcional)',
-                hint:
-                    escolhas.length === 0
-                        ? 'Selecione uma casa oculta para ver o custo do enigma.'
-                        : 'Selecione uma segunda casa (ou finalize).',
-                actions: [
-                    ...restantes.map(id => ({
-                        label: `Ver custo de ${id}`,
-                        disabled: false,
-                        onClick: () => {
-                            escolhas.push(id)
-                            closeActionModal()
-                            if (escolhas.length >= 2) {
-                                socket.emit('bruxa_revelar_custos', {
-                                    sessionId: sessionData.sessionId,
-                                    jogadorId: sessionData.jogadorId,
-                                    casaIds: escolhas
-                                })
-                                return
-                            }
-                            abrirSelecao()
-                        }
-                    })),
-                    {
-                        label:
-                            escolhas.length === 0
-                                ? 'Cancelar'
-                                : 'Finalizar com 1 carta',
-                        disabled: false,
-                        onClick: () => {
-                            closeActionModal()
-                            if (escolhas.length === 0) {
-                                socket.emit('bruxa_cancelar', {
-                                    sessionId: sessionData.sessionId,
-                                    jogadorId: sessionData.jogadorId
-                                })
-                                return
-                            }
-                            socket.emit('bruxa_revelar_custos', {
-                                sessionId: sessionData.sessionId,
-                                jogadorId: sessionData.jogadorId,
-                                casaIds: escolhas
-                            })
-                        }
-                    }
-                ]
-            })
-        }
-
-        abrirSelecao()
     })
 
     socket.on('carta_pista_adicionada', ({ carta }) => {
